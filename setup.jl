@@ -8,8 +8,8 @@ include("DarcyFlow/DarcyFlow.jl")
 seed!(16)
 
 xmax = 6.0
-nx_f, nx_c = 100, 60
-Δ_f, Δ_c = xmax/nx_f, xmax/nx_c
+nx_f, nx_c = 101, 61
+Δ_f, Δ_c = xmax/(nx_f-1), xmax/(nx_c-1)
 
 grid_f = Grid(nx_f, Δ_f)
 grid_c = Grid(nx_c, Δ_c)

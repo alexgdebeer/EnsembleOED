@@ -36,8 +36,7 @@ struct Grid
 
         end
         
-        xs = 0:Δ:(Δ*nx)
-        nx += 1 # A bit hacky, fix...
+        xs = 0:Δ:(Δ*(nx-1))
 
         is_corner = []
         is_bounds = []
