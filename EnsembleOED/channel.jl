@@ -32,7 +32,7 @@ struct Channel
 end
 
 function Base.rand(c::Channel, n::Int=1)
-    return rand(UNIT_NORM, n, c.nθ)
+    return rand(UNIT_NORM, c.nθ, n)
 end
 
 function inds_in_channel(
