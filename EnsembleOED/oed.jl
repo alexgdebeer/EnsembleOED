@@ -69,7 +69,7 @@ function select_sensor(
             # Compute predictions based on current ensemble and observation operator
             compute_Gs!(ens_i, B_i * B)
 
-            run_eki_dmc!(ens_i, B_i * B, B_i * y, C_ϵ)
+            run_eki_dmc!(ens_i, B_i * B, B_i * y, B_i * C_ϵ * B_i')
             C_post = compute_C_uu(ens_i) # NOTE: transformed covariance
 
             push!(traces, tr(C_post))
