@@ -40,7 +40,7 @@ function run_oed(
 
         B_is = generate_B_is(selected_sensors, candidate_sensors, n_obs)
 
-        opt_ind = optimise(B, B_is, ensembles, ys, C_ϵ)
+        opt_ind = select_sensor(B, B_is, ensembles, ys, C_ϵ)
         push!(selected_sensors, candidate_sensors[opt_ind])
 
     end
@@ -49,7 +49,7 @@ function run_oed(
 
 end
 
-function optimise(
+function select_sensor(
     B::AbstractMatrix,
     B_is::Vector{AbstractMatrix},
     ensembles::Vector{Ensemble},
