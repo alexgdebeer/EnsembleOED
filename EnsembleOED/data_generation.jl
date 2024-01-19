@@ -38,22 +38,18 @@ end
 
 function generate_data(
     F::Function,
-    g::Grid, 
     c::Channel,
-    bcs::Vector{BoundaryCondition},
-    f::AbstractVector,
     B::AbstractMatrix;
+    σ_ϵ::Real=0.02*100,
     n_runs::Int=5
 )
 
     θs = rand(c, n_runs)
     us = hcat([transform(c, θ) for θ ∈ eachcol(θs)]...)
-    hs = hcat([F(g, u, bcs, f) for u ∈ us]...)
+    hs = hcat([F(u) for u ∈ eachcol(us)]...)
+    
     ys = B * hs
-
-    σ_ϵ = 0.02 * 100
-
-    rand(Normal(0.0, σ_ϵ))
+    ys += rand(Normal(0.0, σ_ϵ), size(ys))
 
     return θs, us, hs, ys
 
