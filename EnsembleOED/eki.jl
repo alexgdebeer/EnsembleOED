@@ -46,6 +46,16 @@ function compute_covs(
 
 end
 
+function compute_C_uu(
+    ens::Ensemble
+)
+
+    Δu = ens.us .- mean(ens.us, dims=2)
+    C_uu = (Δu * Δu') ./ (ens.J-1)
+    return C_uu
+
+end
+
 function update_ensemble_eki!(
     ens::Ensemble, 
     α::Real, 
@@ -102,7 +112,7 @@ function compute_α_dmc(
 
 end
 
-function run_eki_dmc(
+function run_eki_dmc!(
     ens::Ensemble,
     B::AbstractMatrix,
     y::AbstractVector,
@@ -112,8 +122,6 @@ function run_eki_dmc(
     M = length(y)
     C_ϵ_invsqrt = sqrt(inv(C_ϵ))
     t = 0.0
-
-    compute_Gs!(ens, B)
 
     while true 
 
@@ -125,7 +133,7 @@ function run_eki_dmc(
         compute_Gs!(ens, B)
 
         if (t - 1.0) < CONV_TOL
-            return ens
+            return
         end
 
     end
