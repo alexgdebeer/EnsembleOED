@@ -2,8 +2,7 @@ using Distributions
 using LinearAlgebra
 using Random: seed!
 
-include("DarcyFlow/DarcyFlow.jl")
-include("OED/OED.jl")
+include("EnsembleOED/EnsembleOED.jl")
 
 seed!(16)
 
