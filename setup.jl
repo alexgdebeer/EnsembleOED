@@ -1,11 +1,11 @@
 using Distributions
 using LinearAlgebra
-using LinearSolve
 using Random: seed!
 
 include("DarcyFlow/DarcyFlow.jl")
+include("OED/OED.jl")
 
-seed!(20)
+seed!(16)
 
 xmax = 6000
 nx_f, nx_c = 101, 81
@@ -16,9 +16,9 @@ grid_c = Grid(nx_c, Δ_c)
 
 bcs = Dict(
     :x0 => BoundaryCondition(:x0, :neumann, (x, y) -> 250 * 1e-3),
-    :x1 => BoundaryCondition(:x1, :neumann, (x, y) -> 0.0),
-    :y0 => BoundaryCondition(:y0, :dirichlet, (x, y) -> 100.0), 
-    :y1 => BoundaryCondition(:y1, :neumann, (x, y) -> 0.0)
+    :x1 => BoundaryCondition(:x1, :neumann, (x, y) -> 0),
+    :y0 => BoundaryCondition(:y0, :dirichlet, (x, y) -> 100), 
+    :y1 => BoundaryCondition(:y1, :neumann, (x, y) -> 0)
 )
 
 function build_f(g::Grid)
@@ -64,3 +64,19 @@ ps = solve(grid_c, lnks, bcs, f_c)
 
 lnks = reshape(lnks, grid_c.nx, grid_c.nx)
 ps = reshape(ps, grid_c.nx, grid_c.nx)
+
+# ----------------
+# Measurement generation
+# ----------------
+
+# Candidate locations
+xs_cand = LinRange(500, 5_500, 8)
+ys_cand = LinRange(500, 5_500, 8)
+cs_cand = [(x, y) for y ∈ ys_cand for x ∈ xs_cand]
+
+M = length(cs_cand)
+
+B_c = generate_B(grid_c, cs_cand)
+B_f = generate_B(grid_f, cs_cand)
+
+σ_ϵ = 0.02 * 100
