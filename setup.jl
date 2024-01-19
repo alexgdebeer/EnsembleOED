@@ -38,7 +38,7 @@ f_f = build_f(grid_f)
 f_c = build_f(grid_c)
 
 # ----------------
-# Prior setup
+# Prior
 # ----------------
 
 μ_int = 2
@@ -54,15 +54,16 @@ bnds_geom = [
     (-0.3, 0.3), (1500, 4500), (300, 1200), (2e3, 6e3), (500, 1200)
 ]
 
-pr = Channel(grid_c, μ_int, μ_ext, bnds_int, bnds_ext, bnds_geom)
+channel_c = Channel(grid_c, μ_int, μ_ext, bnds_int, bnds_ext, bnds_geom)
+channel_f = Channel(grid_f, μ_int, μ_ext, bnds_int, bnds_ext, bnds_geom)
 
-ω = rand(pr)
-lnks = transform(pr, ω)
+# ω = rand(pr)
+# lnks = transform(pr, ω)
 
-ps = solve(grid_c, lnks, bcs, f_c)
+# ps = solve(grid_c, lnks, bcs, f_c)
 
-lnks = reshape(lnks, grid_c.nx, grid_c.nx)
-ps = reshape(ps, grid_c.nx, grid_c.nx)
+# lnks = reshape(lnks, grid_c.nx, grid_c.nx)
+# ps = reshape(ps, grid_c.nx, grid_c.nx)
 
 # ----------------
 # Measurement generation
@@ -78,4 +79,7 @@ M = length(cs_cand)
 B_c = generate_B(grid_c, cs_cand)
 B_f = generate_B(grid_f, cs_cand)
 
-σ_ϵ = 0.02 * 100
+solve_c(θ) = solve(grid_c, θ, bcs, f_c)
+solve_f(θ) = solve(grid_f, θ, bcs, f_f)
+
+θs, us, hs, ys = generate_data(solve_f, channel_f, B_f)
