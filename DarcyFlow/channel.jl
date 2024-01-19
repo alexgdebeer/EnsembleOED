@@ -37,7 +37,7 @@ end
 
 function inds_in_channel(
     c::Channel,
-    ηs::AbstractVector
+    ωs::AbstractVector
 )
 
     function in_channel(x, m, c, a, p, w)
@@ -47,8 +47,8 @@ function inds_in_channel(
 
 
     us = [
-        gauss_to_unif(η, bnds...) 
-        for (η, bnds) ∈ zip(ηs, c.bnds_geom)
+        gauss_to_unif(ω, bnds...) 
+        for (ω, bnds) ∈ zip(ωs, c.bnds_geom)
     ]
 
     is_int = [
