@@ -163,12 +163,12 @@ function construct_A(
 
         push!(
             vs,
-            (exp_avg(lnks[i], lnks[i+1])    + exp_avg(lnks[i], lnks[i-1]))    / g.Δ^2 + 
-            (exp_avg(lnks[i], lnks[i+g.nx]) + exp_avg(lnks[i], lnks[i-g.nx])) / g.Δ^2,
-            -exp_avg(lnks[i], lnks[i+1]) / g.Δ^2,
-            -exp_avg(lnks[i], lnks[i-1]) / g.Δ^2,
-            -exp_avg(lnks[i], lnks[i+g.nx]) / g.Δ^2,
-            -exp_avg(lnks[i], lnks[i-g.nx]) / g.Δ^2
+            -(exp_avg(lnks[i], lnks[i+1])    + exp_avg(lnks[i], lnks[i-1]))    / g.Δ^2 + 
+            -(exp_avg(lnks[i], lnks[i+g.nx]) + exp_avg(lnks[i], lnks[i-g.nx])) / g.Δ^2,
+            exp_avg(lnks[i], lnks[i+1]) / g.Δ^2,
+            exp_avg(lnks[i], lnks[i-1]) / g.Δ^2,
+            exp_avg(lnks[i], lnks[i+g.nx]) / g.Δ^2,
+            exp_avg(lnks[i], lnks[i-g.nx]) / g.Δ^2
         )
 
         return
@@ -199,10 +199,10 @@ function construct_b(
     g::Grid, 
     lnks::AbstractVector,
     bcs::Dict{Symbol, BoundaryCondition},
-    q::AbstractVector
+    f::AbstractVector
 )
 
-    b = copy(q)
+    b = -copy(f)
 
     for (i, bc) ∈ zip(g.is_bounds, g.bs_bounds)
 
@@ -222,11 +222,11 @@ function SciMLBase.solve(
     g::Grid,
     lnks::AbstractVector,
     bcs::Dict{Symbol, BoundaryCondition},
-    q::AbstractVector
+    f::AbstractVector
 )
 
     A = construct_A(g, lnks, bcs)
-    b = construct_b(g, lnks, bcs, q)
+    b = construct_b(g, lnks, bcs, f)
 
     u = solve(LinearProblem(A, b)).u
     return u
