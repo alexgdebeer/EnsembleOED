@@ -41,18 +41,18 @@ f_c = build_f(grid_c)
 # Prior
 # ----------------
 
-μ_int = 1.0
+μ_int = 2.0
 μ_ext = 4.0
 
 σ_int = 0.5
-σ_ext = 0.5 
+σ_ext = 0.25
 
 l_int = 500
 l_ext = 2000
 
 # Bounds for slope, intercept, amplitude, period, width of channel 
 bnds_geom = [
-    (-0.3, 0.3), (1500, 4500), (300, 1200), (2e3, 6e3), (500, 1200)
+    (-0.3, 0.3), (1500, 4500), (300, 1200), (2e3, 6e3), (750, 1000)
 ]
 
 channel_c = Channel(grid_c, μ_int, μ_ext, σ_int, σ_ext, l_int, l_ext, bnds_geom)
