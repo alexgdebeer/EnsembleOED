@@ -4,7 +4,7 @@ using Random: seed!
 
 include("EnsembleOED/EnsembleOED.jl")
 
-seed!(4)
+seed!(32)
 
 xmax = 6000
 nx_f, nx_c = 101, 61
@@ -41,24 +41,25 @@ f_c = build_f(grid_c)
 # Prior
 # ----------------
 
-μ_int = 2
-μ_ext = 4
+μ_int = 1.0
+μ_ext = 4.0
 
-# Bounds for standard deviation and lengthscale of log-permeability of 
-# each random field
-bnds_int = [(0.25, 0.75), (500, 3000)]
-bnds_ext = [(0.25, 0.75), (500, 3000)]
+σ_int = 0.5
+σ_ext = 0.5 
+
+l_int = 500
+l_ext = 2000
 
 # Bounds for slope, intercept, amplitude, period, width of channel 
 bnds_geom = [
     (-0.3, 0.3), (1500, 4500), (300, 1200), (2e3, 6e3), (500, 1200)
 ]
 
-channel_c = Channel(grid_c, μ_int, μ_ext, bnds_int, bnds_ext, bnds_geom)
-channel_f = Channel(grid_f, μ_int, μ_ext, bnds_int, bnds_ext, bnds_geom)
+channel_c = Channel(grid_c, μ_int, μ_ext, σ_int, σ_ext, l_int, l_ext, bnds_geom)
+channel_f = Channel(grid_f, μ_int, μ_ext, σ_int, σ_ext, l_int, l_ext, bnds_geom)
 
-# ω = rand(pr)
-# lnks = transform(pr, ω)
+# ω = rand(channel_c)
+# lnks = transform(channel_c, ω)
 
 # ps = solve(grid_c, lnks, bcs, f_c)
 

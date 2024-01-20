@@ -225,10 +225,9 @@ function SciMLBase.solve(
     f::AbstractVector
 )
 
-    @time A = construct_A(g, lnks, bcs)
-    @time b = construct_b(g, lnks, bcs, f)
-
-    @time u = solve(LinearProblem(A, b)).u
+    A = construct_A(g, lnks, bcs)
+    b = construct_b(g, lnks, bcs, f)
+    u = solve(LinearProblem(A, b)).u
     return u
 
 end
