@@ -45,6 +45,8 @@ function run_oed(
         opt_ind = select_sensor(B, B_is, ensembles, ys, C_ϵ)
         push!(selected_sensors, candidate_sensors[opt_ind])
 
+        @info "Selected sensor: $(candidate_sensors[opt_ind])."
+
     end
 
     return selected_sensors
@@ -59,10 +61,10 @@ function select_sensor(
     C_ϵ::AbstractMatrix,
 )
 
-    n_runs = length(ys)
+    n_runs = size(ys, 2)
     traces = Float64[]
 
-    for B_i ∈ B_is
+    for (i, B_i) ∈ enumerate(B_is)
 
         ensembles_i = deepcopy(ensembles)
 
@@ -75,19 +77,16 @@ function select_sensor(
             C_post = compute_C_uu(ens_i) # NOTE: transformed covariance
 
             push!(traces, tr(C_post))
-            println(tr(C_post))
 
         end
+
+        println("Sensor $i: $(mean(traces[end-4:end])).")
 
     end
 
     traces = reshape(traces, n_runs, :)
-    mean_traces = mean(traces, dims=1)
-    println(mean_traces)
+    mean_traces = vec(mean(traces, dims=1))
     min_ind = argmin(mean_traces)
-
-    println(min_ind)
-    error("stop")
     return min_ind
 
 end
