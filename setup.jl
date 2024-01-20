@@ -69,6 +69,7 @@ channel_f = Channel(grid_f, μ_int, μ_ext, σ_int, σ_ext, l_int, l_ext, bnds_g
 # ----------------
 # Measurement generation
 # ----------------
+n_data = 5
 
 # Candidate locations
 xs_cand = reverse(LinRange(500, 5_500, 5))
@@ -86,7 +87,18 @@ solve_f(u) = solve(grid_f, u, bcs, f_f)
 σ_ϵ = 0.02 * 100
 C_ϵ = σ_ϵ^2 * Matrix(1.0I, M, M)
 
-θs, us, hs, ys = generate_data(solve_f, channel_f, B_f, C_ϵ)
+θs, us, hs, ys = generate_data(solve_f, channel_f, B_f, C_ϵ, n_data)
+
+# ----------------
+# Ensemble generation
+# ----------------
+J = 100
+ensembles = [
+    Ensemble(channel_c, solve_c, J) for _ ∈ 1:n_data
+]
+
+max_sensors = 5
+run_oed(ensembles, B_c, ys, C_ϵ, max_sensors)
 
 # ----------------
 # Test
@@ -101,15 +113,3 @@ C_ϵ = σ_ϵ^2 * Matrix(1.0I, M, M)
 # ens = Ensemble(channel_c, solve_c, J)
 # compute_Gs!(ens, B_c)
 # run_eki_dmc!(ens, B_c, y_t, C_ϵ)
-
-# ----------------
-# Ensemble generation
-# ----------------
-J = 100
-
-ensembles = [
-    Ensemble(channel_c, solve_c, J) for _ ∈ 1:5 # TODO: stop hard-coding 5 in here...
-]
-
-max_sensors = 5
-run_oed(ensembles, B_c, ys, C_ϵ, 5)

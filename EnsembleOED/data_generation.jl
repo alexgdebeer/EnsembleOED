@@ -40,8 +40,8 @@ function generate_data(
     F::Function,
     c::Channel,
     B::AbstractMatrix,
-    C_ϵ::AbstractMatrix;
-    n_runs::Int=5
+    C_ϵ::AbstractMatrix,
+    n_runs::Int
 )
 
     θs = rand(c, n_runs)
