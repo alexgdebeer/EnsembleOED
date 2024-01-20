@@ -3,7 +3,7 @@ using HDF5
 using LinearAlgebra
 using LinearSolve
 using SparseArrays
-using SpecialFunctions: gamma
+using SpecialFunctions
 
 include("forward_solver.jl")
 include("matern.jl")
