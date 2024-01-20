@@ -23,15 +23,17 @@ end
 function run_oed(
     ensembles::Vector{Ensemble},
     B::AbstractMatrix,
-    ys::Vector{AbstractVector},
+    ys::AbstractMatrix,
     C_ϵ::AbstractMatrix,
-    n_sensors::Int
+    max_sensors::Int
 )
 
-    n_obs = length(ys[1])
+    n_obs = size(ys, 1)
+    n_sensors = size(ys, 1)
+
     selected_sensors = Int[]
 
-    for i ∈ 1:n_sensors 
+    for i ∈ 1:max_sensors 
 
         candidate_sensors = [
             i for i ∈ 1:n_sensors 
@@ -51,9 +53,9 @@ end
 
 function select_sensor(
     B::AbstractMatrix,
-    B_is::Vector{AbstractMatrix},
+    B_is::Vector,
     ensembles::Vector{Ensemble},
-    ys::Vector{AbstractVector},
+    ys::AbstractMatrix,
     C_ϵ::AbstractMatrix,
 )
 
@@ -64,7 +66,7 @@ function select_sensor(
 
         ensembles_i = deepcopy(ensembles)
 
-        for (y, ens_i) ∈ zip(ys, ensembles_i)
+        for (y, ens_i) ∈ zip(eachcol(ys), ensembles_i)
 
             # Compute predictions based on current ensemble and observation operator
             compute_Gs!(ens_i, B_i * B)
@@ -73,6 +75,7 @@ function select_sensor(
             C_post = compute_C_uu(ens_i) # NOTE: transformed covariance
 
             push!(traces, tr(C_post))
+            println(tr(C_post))
 
         end
 
@@ -80,8 +83,11 @@ function select_sensor(
 
     traces = reshape(traces, n_runs, :)
     mean_traces = mean(traces, dims=1)
+    println(mean_traces)
     min_ind = argmin(mean_traces)
 
+    println(min_ind)
+    error("stop")
     return min_ind
 
 end

@@ -24,6 +24,7 @@ mutable struct Ensemble
         Gs = nothing
 
         ens = new(θs, us, Fs, Gs, channel, solve, J)
+        transform_ensemble!(ens)
         run_ensemble!(ens)
 
         return ens
@@ -63,10 +64,19 @@ function update_ensemble_eki!(
     C_ϵ::AbstractMatrix
 )
 
-    C_θG, C_GG = compute_covs(ensemble)
+    C_θG, C_GG = compute_covs(ens)
     ϵs = rand(MvNormal(α * C_ϵ), ens.J)
     ens.θs += C_θG * inv(C_GG + α * C_ϵ) * (y .+ ϵs .- ens.Gs)
 
+    return
+
+end
+
+function transform_ensemble!(
+    ens::Ensemble
+)
+
+    @time ens.us = hcat([transform(ens.channel, θ) for θ ∈ eachcol(ens.θs)]...)
     return
 
 end
@@ -75,9 +85,7 @@ function run_ensemble!(
     ens::Ensemble
 )
 
-    ens.us = hcat([transform(ens.channel, θ) for θ ∈ eachcol(θs)]...)
-    ens.Fs = hcat([ens.solve(u) for u ∈ eachcol(us)]...)
-
+    @time ens.Fs = hcat([ens.solve(u) for u ∈ eachcol(ens.us)]...)
     return
 
 end
@@ -122,19 +130,27 @@ function run_eki_dmc!(
     M = length(y)
     C_ϵ_invsqrt = sqrt(inv(C_ϵ))
     t = 0.0
+    i = 0
 
     while true 
 
-        α_i = compute_α_dmc(t, ens_i, y, C_ϵ_invsqrt, M)
-        t += α_i^-1
+        α = compute_α_dmc(t, ens, y, C_ϵ_invsqrt, M)
+        t += α^-1
 
-        update_ensemble_eki!(ens, α_i, y, C_ϵ)
-        run_ensemble!(ens)
-        compute_Gs!(ens, B)
+        # println(t)
 
-        if (t - 1.0) < CONV_TOL
+        update_ensemble_eki!(ens, α, y, C_ϵ)
+        transform_ensemble!(ens)
+
+        i += 1
+
+        if abs(t - 1.0) < CONV_TOL
+            @info "Converged in $(i) iterations."
             return
         end
+
+        run_ensemble!(ens)
+        compute_Gs!(ens, B)
 
     end
 

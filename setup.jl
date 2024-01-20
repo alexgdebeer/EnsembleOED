@@ -4,10 +4,10 @@ using Random: seed!
 
 include("EnsembleOED/EnsembleOED.jl")
 
-seed!(16)
+seed!(4)
 
 xmax = 6000
-nx_f, nx_c = 101, 81
+nx_f, nx_c = 101, 61
 Δ_f, Δ_c = xmax/(nx_f-1), xmax/(nx_c-1)
 
 grid_f = Grid(nx_f, Δ_f)
@@ -70,8 +70,8 @@ channel_f = Channel(grid_f, μ_int, μ_ext, bnds_int, bnds_ext, bnds_geom)
 # ----------------
 
 # Candidate locations
-xs_cand = LinRange(500, 5_500, 8)
-ys_cand = LinRange(500, 5_500, 8)
+xs_cand = reverse(LinRange(500, 5_500, 5))
+ys_cand = reverse(LinRange(500, 5_500, 5))
 cs_cand = [(x, y) for y ∈ ys_cand for x ∈ xs_cand]
 
 M = length(cs_cand)
@@ -79,7 +79,36 @@ M = length(cs_cand)
 B_c = generate_B(grid_c, cs_cand)
 B_f = generate_B(grid_f, cs_cand)
 
-solve_c(θ) = solve(grid_c, θ, bcs, f_c)
-solve_f(θ) = solve(grid_f, θ, bcs, f_f)
+solve_c(u) = solve(grid_c, u, bcs, f_c)
+solve_f(u) = solve(grid_f, u, bcs, f_f)
 
-θs, us, hs, ys = generate_data(solve_f, channel_f, B_f)
+σ_ϵ = 0.02 * 100
+C_ϵ = σ_ϵ^2 * Matrix(1.0I, M, M)
+
+θs, us, hs, ys = generate_data(solve_f, channel_f, B_f, C_ϵ)
+
+# ----------------
+# Test
+# ----------------
+
+# θ_t = rand(channel_f)
+# u_t = transform(channel_f, θ_t)
+# h_t = solve_f(u_t)
+# y_t = B_f * h_t # Add noise?
+
+# J = 100
+# ens = Ensemble(channel_c, solve_c, J)
+# compute_Gs!(ens, B_c)
+# run_eki_dmc!(ens, B_c, y_t, C_ϵ)
+
+# ----------------
+# Ensemble generation
+# ----------------
+J = 100
+
+ensembles = [
+    Ensemble(channel_c, solve_c, J) for _ ∈ 1:5 # TODO: stop hard-coding 5 in here...
+]
+
+max_sensors = 5
+run_oed(ensembles, B_c, ys, C_ϵ, 5)

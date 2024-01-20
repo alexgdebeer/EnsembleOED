@@ -39,8 +39,8 @@ end
 function generate_data(
     F::Function,
     c::Channel,
-    B::AbstractMatrix;
-    σ_ϵ::Real=0.02*100,
+    B::AbstractMatrix,
+    C_ϵ::AbstractMatrix;
     n_runs::Int=5
 )
 
@@ -49,7 +49,8 @@ function generate_data(
     hs = hcat([F(u) for u ∈ eachcol(us)]...)
     
     ys = B * hs
-    ys += rand(Normal(0.0, σ_ϵ), size(ys))
+    ϵs = rand(MvNormal(C_ϵ), n_runs)
+    ys += ϵs
 
     return θs, us, hs, ys
 
