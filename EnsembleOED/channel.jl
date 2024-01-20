@@ -52,7 +52,12 @@ struct Channel
 end
 
 function Base.rand(c::Channel, n::Int=1)
-    return rand(UNIT_NORM, c.nθ, n)
+
+    ωs = rand(UNIT_NORM, c.nθ, n)
+    ωs[1:c.nx^2, :] = c.μ_int .+ c.L_int' * ωs[1:c.nx^2, :]
+    ωs[c.nx^2+1:2c.nx^2, :] = c.μ_ext .+ c.L_ext' * ωs[c.nx^2+1:2c.nx^2, :]
+
+    return ωs
 end
 
 function inds_in_channel(
@@ -64,7 +69,6 @@ function inds_in_channel(
         centre = a * sin(2π*x[1] / p) + m * x[1] + c 
         centre - w ≤ x[2] ≤ centre + w
     end
-
 
     us = [
         gauss_to_unif(ω, bnds...) 
@@ -82,16 +86,13 @@ end
 
 function transform(c::Channel, ωs::AbstractVecOrMat)
 
-    ωs_int = ωs[1:c.nx^2]
-    ωs_ext = ωs[c.nx^2+1:2c.nx^2]
+    lnks_int = ωs[1:c.nx^2]
+    lnks_ext = ωs[c.nx^2+1:2c.nx^2]
     ωs_geom = ωs[2c.nx^2+1:end]
-
-    lnks_int = c.μ_int .+ c.L_int' * ωs_int 
-    lnks_ext = c.μ_ext .+ c.L_ext' * ωs_ext
 
     is_int = inds_in_channel(c, ωs_geom)
 
-    lnks = lnks_ext
+    lnks = copy(lnks_ext)
     lnks[is_int] = lnks_int[is_int]
 
     return lnks
