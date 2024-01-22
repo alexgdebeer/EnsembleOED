@@ -7,11 +7,10 @@ include("EnsembleOED/EnsembleOED.jl")
 seed!(16)
 
 xmax = 6000
-nx_f, nx_c = 81, 61
-Δ_f, Δ_c = xmax/(nx_f-1), xmax/(nx_c-1)
+nx = 61
+Δ = xmax/(nx-1)
 
-grid_f = Grid(nx_f, Δ_f)
-grid_c = Grid(nx_c, Δ_c)
+grid = Grid(nx, Δ)
 
 bcs = Dict(
     :x0 => BoundaryCondition(:x0, :neumann, (x, y) -> 250 * 1e-3),
@@ -34,8 +33,7 @@ function build_f(g::Grid)
     return f
 end
 
-f_f = build_f(grid_f)
-f_c = build_f(grid_c)
+f = build_f(grid)
 
 # ----------------
 # Prior
@@ -55,8 +53,7 @@ bnds_geom = [
     (-0.3, 0.3), (1500, 4500), (300, 1200), (4000, 6000), (750, 1000)
 ]
 
-channel_c = Channel(grid_c, μ_int, μ_ext, σ_int, σ_ext, l_int, l_ext, bnds_geom)
-channel_f = Channel(grid_f, μ_int, μ_ext, σ_int, σ_ext, l_int, l_ext, bnds_geom)
+channel = Channel(grid, μ_int, μ_ext, σ_int, σ_ext, l_int, l_ext, bnds_geom)
 
 # ω = rand(channel_c)
 # lnks = transform(channel_c, ω)
@@ -78,38 +75,34 @@ cs_cand = [(x, y) for y ∈ ys_cand for x ∈ xs_cand]
 
 M = length(cs_cand)
 
-B_c = generate_B(grid_c, cs_cand)
-B_f = generate_B(grid_f, cs_cand)
+B = generate_B(grid, cs_cand)
 
-solve_c(u) = solve(grid_c, u, bcs, f_c)
-solve_f(u) = solve(grid_f, u, bcs, f_f)
+F(u) = solve(grid, u, bcs, f)
 
 σ_ϵ = 0.02 * 150
 C_ϵ = σ_ϵ^2 * Matrix(1.0I, M, M)
 
-θs, us, hs, ys = generate_data(solve_f, channel_f, B_f, C_ϵ, n_data)
+θs, us, hs, ys = generate_data(F, channel, B, C_ϵ, n_data)
 
 # ----------------
 # Ensemble generation
 # ----------------
 J = 100
-ensembles = [
-    Ensemble(channel_c, solve_c, J) for _ ∈ 1:n_data
-]
+ensembles = [Ensemble(channel, F, J) for _ ∈ 1:n_data]
 
 max_sensors = 10
-traces_list, sensors = run_oed(ensembles, B_c, ys, C_ϵ, max_sensors)
+traces_list, sensors = run_oed(ensembles, B, ys, C_ϵ, max_sensors)
 
 # ----------------
 # Test
 # ----------------
 
-# θ_t = rand(channel_f)
-# u_t = transform(channel_f, θ_t)
-# h_t = solve_f(u_t)
-# y_t = B_f * h_t # Add noise?
+# θ_t = rand(channel)
+# u_t = transform(channel, θ_t)
+# h_t = solve(u_t)
+# y_t = B * h_t # Add noise?
 
 # J = 100
-# ens = Ensemble(channel_c, solve_c, J)
-# compute_Gs!(ens, B_c)
-# run_eki_dmc!(ens, B_c, y_t, C_ϵ)
+# ens = Ensemble(channel, solve, J)
+# compute_Gs!(ens, B)
+# run_eki_dmc!(ens, B, y_t, C_ϵ)

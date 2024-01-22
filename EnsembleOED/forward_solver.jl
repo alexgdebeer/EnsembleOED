@@ -218,7 +218,7 @@ function construct_b(
 
 end
 
-function SciMLBase.solve(
+function solve(
     g::Grid,
     lnks::AbstractVector,
     bcs::Dict{Symbol, BoundaryCondition},
@@ -227,7 +227,7 @@ function SciMLBase.solve(
 
     A = construct_A(g, lnks, bcs)
     b = construct_b(g, lnks, bcs, f)
-    u = solve(LinearProblem(A, b)).u
+    u = LinearSolve.solve(LinearProblem(A, b)).u
     return u
 
 end

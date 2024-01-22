@@ -145,7 +145,7 @@ function run_eki_dmc!(
         i += 1
 
         if abs(t - 1.0) < CONV_TOL
-            # @info "Converged in $(i) iterations."
+            @info "Converged in $(i) iterations."
             return
         end
 
