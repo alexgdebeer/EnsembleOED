@@ -32,6 +32,7 @@ function run_oed(
     n_sensors = size(ys, 1)
 
     selected_sensors = Int[]
+    traces_list = []
 
     for i ∈ 1:max_sensors 
 
@@ -42,14 +43,16 @@ function run_oed(
 
         B_is = generate_B_is(selected_sensors, candidate_sensors, n_obs)
 
-        opt_ind = select_sensor(B, B_is, ensembles, ys, C_ϵ)
+        traces, opt_ind = select_sensor(B, B_is, ensembles, ys, C_ϵ)
+        
+        push!(traces_list, traces)
         push!(selected_sensors, candidate_sensors[opt_ind])
 
         @info "Selected sensor: $(candidate_sensors[opt_ind])."
 
     end
 
-    return selected_sensors
+    return traces_list, selected_sensors
 
 end
 
@@ -70,23 +73,21 @@ function select_sensor(
 
         for (y, ens_i) ∈ zip(eachcol(ys), ensembles_i)
 
-            # Compute predictions based on current ensemble and observation operator
             compute_Gs!(ens_i, B_i * B)
-
             run_eki_dmc!(ens_i, B_i * B, B_i * y, B_i * C_ϵ * B_i')
-            C_post = compute_C_uu(ens_i) # NOTE: transformed covariance
-
+            
+            C_post = compute_C_uu(ens_i)
             push!(traces, tr(C_post))
 
         end
 
-        println("Sensor $i: $(mean(traces[end-4:end])).")
+        println("Candidate sensor $i: $(mean(traces[end-4:end])).")
 
     end
 
     traces = reshape(traces, n_runs, :)
     mean_traces = vec(mean(traces, dims=1))
     min_ind = argmin(mean_traces)
-    return min_ind
+    return traces, min_ind
 
 end

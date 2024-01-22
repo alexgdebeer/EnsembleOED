@@ -76,7 +76,7 @@ function transform_ensemble!(
     ens::Ensemble
 )
 
-    @time ens.us = hcat([transform(ens.channel, θ) for θ ∈ eachcol(ens.θs)]...)
+    ens.us = hcat([transform(ens.channel, θ) for θ ∈ eachcol(ens.θs)]...)
     return
 
 end
@@ -85,7 +85,7 @@ function run_ensemble!(
     ens::Ensemble
 )
 
-    @time ens.Fs = hcat([ens.solve(u) for u ∈ eachcol(ens.us)]...)
+    ens.Fs = hcat([ens.solve(u) for u ∈ eachcol(ens.us)]...)
     return
 
 end
@@ -145,7 +145,7 @@ function run_eki_dmc!(
         i += 1
 
         if abs(t - 1.0) < CONV_TOL
-            @info "Converged in $(i) iterations."
+            # @info "Converged in $(i) iterations."
             return
         end
 
