@@ -13,7 +13,7 @@ LEGEND_SIZE = 14
 TEXT_SIZE = 12
 TICK_SIZE = 12
 
-LABEL_TRANS = "log$_{10}$(Transmissivity) [log$_{10}$(m$^{2}$ day$^{-1}$)]"
+LABEL_TRANS = "ln(Transmissivity) [ln(m$^{2}$ day$^{-1}$)]"
 
 CMAP_TRANS = "turbo"
 
