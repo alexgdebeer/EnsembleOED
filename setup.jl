@@ -1,4 +1,3 @@
-using Distributions
 using LinearAlgebra
 using Random: seed!
 
@@ -55,14 +54,6 @@ bnds_geom = [
 
 channel = Channel(grid, μ_int, μ_ext, σ_int, σ_ext, l_int, l_ext, bnds_geom)
 
-# ω = rand(channel_c)
-# lnks = transform(channel_c, ω)
-
-# ps = solve(grid_c, lnks, bcs, f_c)
-
-# lnks = reshape(lnks, grid_c.nx, grid_c.nx)
-# ps = reshape(ps, grid_c.nx, grid_c.nx)
-
 # ----------------
 # Measurement generation
 # ----------------
@@ -85,24 +76,10 @@ C_ϵ = σ_ϵ^2 * Matrix(1.0I, M, M)
 θs, us, hs, ys = generate_data(F, channel, B, C_ϵ, n_data)
 
 # ----------------
-# Ensemble generation
+# OED
 # ----------------
 J = 100
 ensembles = [Ensemble(channel, F, J) for _ ∈ 1:n_data]
 
 max_sensors = 10
 traces_list, sensors = run_oed(ensembles, B, ys, C_ϵ, max_sensors)
-
-# ----------------
-# Test
-# ----------------
-
-# θ_t = rand(channel)
-# u_t = transform(channel, θ_t)
-# h_t = solve(u_t)
-# y_t = B * h_t # Add noise?
-
-# J = 100
-# ens = Ensemble(channel, solve, J)
-# compute_Gs!(ens, B)
-# run_eki_dmc!(ens, B, y_t, C_ϵ)
