@@ -2,6 +2,7 @@ using Distributions
 using HDF5
 using LinearAlgebra
 using LinearSolve
+using Random
 using SparseArrays
 using SpecialFunctions
 

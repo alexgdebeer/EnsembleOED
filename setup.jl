@@ -5,6 +5,13 @@ include("EnsembleOED/EnsembleOED.jl")
 
 seed!(16)
 
+fname_design_50 = "data/design_50.h5"
+fname_design_100 = "data/design_100.h5"
+
+# ----------------
+# Discretisation, boundary conditions, forcing function
+# ----------------
+
 xmax = 6000
 nx = 61
 Δ = xmax/(nx-1)
@@ -57,6 +64,7 @@ channel = Channel(grid, μ_int, μ_ext, σ_int, σ_ext, l_int, l_ext, bnds_geom)
 # ----------------
 # Measurement generation
 # ----------------
+
 n_data = 5
 
 # Candidate locations
@@ -78,8 +86,26 @@ C_ϵ = σ_ϵ^2 * Matrix(1.0I, M, M)
 # ----------------
 # OED
 # ----------------
+
 J = 100
 ensembles = [Ensemble(channel, F, J) for _ ∈ 1:n_data]
 
-max_sensors = 10
-traces_list, sensors = run_oed(ensembles, B, ys, C_ϵ, max_sensors)
+max_sensors = 40
+traces_list, design = run_oed(ensembles, B, ys, C_ϵ, max_sensors)
+# traces_list_50, design_50 = read_design(fname_design_50)
+# traces_list_100, design_100 = read_design(fname_design_100)
+
+# # ----------------
+# # Validation
+# # ----------------
+
+# n_data_v = 20
+# J_v = 200
+
+# θs_v, us_v, hs_v, ys_v = generate_data(F, channel, B, C_ϵ, n_data_v)
+# ensembles_v = [Ensemble(channel, F, J_v) for _ ∈ 1:n_data_v]
+
+# designs = [design_50, design_100]
+# traces, μs_post = validate_designs(designs, ensembles_v, B, ys_v, C_ϵ)
+
+# display(traces)

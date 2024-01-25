@@ -1,5 +1,8 @@
 const CONV_TOL = 1e-8
 
+const α₁ = 1_000
+const γ = 0.839
+
 mutable struct Ensemble
 
     θs::AbstractMatrix
@@ -57,6 +60,10 @@ function compute_C_uu(
 
 end
 
+function compute_μ_u(ens::Ensemble)
+    return mean(ens.us, dims=2)
+end
+
 function update_ensemble_eki!(
     ens::Ensemble, 
     α::Real, 
@@ -105,7 +112,8 @@ function compute_α_dmc(
     ens::Ensemble, 
     y::AbstractVector, 
     C_ϵ_invsqrt::AbstractMatrix,
-    M::Int
+    M::Int,
+    N_it::Int
 )
 
     φs = 0.5 * sum((C_ϵ_invsqrt * (ens.Gs .- y)).^2, dims=1)
@@ -114,6 +122,8 @@ function compute_α_dmc(
     var_φ = var(φs)
     
     α_inv = max(M / 2μ_φ, √(M / 2var_φ))
+    # Ensure number of iterations is no more than 30
+    α_inv = max(α_inv, (α₁ * γ^N_it)^-1)
     α_inv = min(α_inv, 1-t)
 
     return 1.0/α_inv
@@ -134,15 +144,14 @@ function run_eki_dmc!(
 
     while true 
 
-        α = compute_α_dmc(t, ens, y, C_ϵ_invsqrt, M)
+        α = compute_α_dmc(t, ens, y, C_ϵ_invsqrt, M, i)
+        i += 1
         t += α^-1
 
-        # println(t)
+        println(t)
 
         update_ensemble_eki!(ens, α, y, C_ϵ)
         transform_ensemble!(ens)
-
-        i += 1
 
         if abs(t - 1.0) < CONV_TOL
             @info "Converged in $(i) iterations."
