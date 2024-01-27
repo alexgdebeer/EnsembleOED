@@ -5,8 +5,7 @@ include("EnsembleOED/EnsembleOED.jl")
 
 seed!(16)
 
-fname_design_50 = "data/design_50.h5"
-fname_design_100 = "data/design_100.h5"
+fname_designs = "data/designs.h5"
 
 # ----------------
 # Discretisation, boundary conditions, forcing function
@@ -81,31 +80,29 @@ F(u) = solve(grid, u, bcs, f)
 σ_ϵ = 0.02 * 150
 C_ϵ = σ_ϵ^2 * Matrix(1.0I, M, M)
 
-θs, us, hs, ys = generate_data(F, channel, B, C_ϵ, n_data)
-
 # ----------------
 # OED
 # ----------------
 
-J = 100
-ensembles = [Ensemble(channel, F, J) for _ ∈ 1:n_data]
+# θs, us, hs, ys = generate_data(F, channel, B, C_ϵ, n_data)
 
-max_sensors = 40
-traces_list, design = run_oed(ensembles, B, ys, C_ϵ, max_sensors)
-# traces_list_50, design_50 = read_design(fname_design_50)
-# traces_list_100, design_100 = read_design(fname_design_100)
+# J = 25
+# ensembles = [Ensemble(channel, F, J) for _ ∈ 1:n_data]
 
-# # ----------------
-# # Validation
-# # ----------------
+# max_sensors = 40
+# traces_list, design = run_oed(ensembles, B, ys, C_ϵ, max_sensors)
+designs = read_designs(fname_designs)
 
-# n_data_v = 20
-# J_v = 200
+# ----------------
+# Validation
+# ----------------
 
-# θs_v, us_v, hs_v, ys_v = generate_data(F, channel, B, C_ϵ, n_data_v)
-# ensembles_v = [Ensemble(channel, F, J_v) for _ ∈ 1:n_data_v]
+n_data_v = 20
+J_v = 200
 
-# designs = [design_50, design_100]
-# traces, μs_post = validate_designs(designs, ensembles_v, B, ys_v, C_ϵ)
+designs = [d[1:20] for d ∈ designs]
 
-# display(traces)
+θs_v, us_v, hs_v, ys_v = generate_data(F, channel, B, C_ϵ, n_data_v)
+ensembles_v = [Ensemble(channel, F, J_v) for _ ∈ 1:n_data_v]
+
+traces, norms = validate_designs(designs, ensembles_v, B, us_v, ys_v, C_ϵ)
