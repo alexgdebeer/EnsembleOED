@@ -148,13 +148,13 @@ function run_eki_dmc!(
         i += 1
         t += α^-1
 
-        println(t)
+        # println(t)
 
         update_ensemble_eki!(ens, α, y, C_ϵ)
         transform_ensemble!(ens)
 
         if abs(t - 1.0) < CONV_TOL
-            @info "Converged in $(i) iterations."
+            # @info "Converged in $(i) iterations."
             return
         end
 

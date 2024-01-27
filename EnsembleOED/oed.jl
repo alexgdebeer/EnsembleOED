@@ -71,46 +71,43 @@ function select_sensor(
 )
 
     n_runs = size(ys, 2)
-    traces = Float64[]
+    n_sensors = length(B_is)
 
-    for (i, B_i) ∈ enumerate(B_is)
+    traces = zeros(n_sensors, n_runs)
 
-        ensembles_i = deepcopy(ensembles)
+    ens = [deepcopy(ensembles) for _ ∈ 1:n_sensors]
+    ys = [copy(ys) for _ ∈ 1:n_sensors]
 
-        for (y, ens_i) ∈ zip(eachcol(ys), ensembles_i)
+    Threads.@threads for i ∈ 1:n_sensors
 
-            compute_Gs!(ens_i, B_i * B)
-            run_eki_dmc!(ens_i, B_i * B, B_i * y, B_i * C_ϵ * B_i')
+        for (j, (y_ij, ens_ij)) ∈ enumerate(zip(eachcol(ys[i]), ens[i]))
+
+            compute_Gs!(ens_ij, B_is[i] * B)
+            run_eki_dmc!(ens_ij, B_is[i] * B, B_is[i] * y_ij, B_is[i] * C_ϵ * B_is[i]')
             
-            C_post = compute_C_uu(ens_i)
-            push!(traces, tr(C_post))
+            C_post = compute_C_uu(ens_ij)
+            traces[i, j] = tr(C_post)
 
         end
 
-        println("Candidate sensor $i: $(mean(traces[end-4:end])).")
+        println("Candidate sensor $i: $(mean(traces[i, :])).")
 
     end
 
-    traces = reshape(traces, n_runs, :)
-    mean_traces = vec(mean(traces, dims=1))
+    mean_traces = vec(mean(traces, dims=2))
+    display(mean_traces)
     min_ind = argmin(mean_traces)
     return traces, min_ind
 
 end
 
-function read_design(
-    fname::AbstractString
-)
+function read_designs(fname::AbstractString)
 
     f = h5open(fname, "r")
-    design = f["sensors"][:]
-    traces_list = []
-    for i ∈ 1:length(design)
-        push!(traces_list, f["traces_$i"][:, :])
-    end
+    designs = [f["design_25"][:], f["design_50"][:], f["design_100"][:]]
     close(f)
 
-    return traces_list, design
+    return designs
 
 end
 
@@ -118,6 +115,7 @@ function validate_designs(
     designs::AbstractVector,
     ensembles::Vector{Ensemble},
     B::AbstractMatrix,
+    us::AbstractMatrix,
     ys::AbstractMatrix,
     C_ϵ::AbstractMatrix,
     n_rand_designs::Int=20
@@ -126,6 +124,7 @@ function validate_designs(
     n_obs = size(ys, 1)
     n_sensor_locs = size(ys, 1)
     n_sensors = length(designs[1])
+    n_ens = length(ensembles)
 
     # Generate a set of random designs
     rand_designs = [
@@ -136,34 +135,33 @@ function validate_designs(
     all_designs = [designs..., rand_designs...]
     n_designs = length(all_designs)
 
-    traces = Float64[]
-    μs_post = []
+    traces = zeros(n_designs, n_ens)
+    norms = zeros(n_designs, n_ens)
 
-    # Generate observation operators
-    for design ∈ all_designs
+    Threads.@threads for i ∈ 1:n_designs
 
-        ensembles_i = deepcopy(ensembles)
-        B_i = generate_B_i(n_sensors, n_obs, design)
+        ens_i = deepcopy(ensembles)
+        B_i = generate_B_i(n_sensors, n_obs, all_designs[i])
         
-        for (y, ens_i) ∈ zip(eachcol(ys), ensembles_i)
+        for j ∈ 1:n_ens
 
-            compute_Gs!(ens_i, B_i * B)
-            run_eki_dmc!(ens_i, B_i * B, B_i * y, B_i * C_ϵ * B_i')
+            compute_Gs!(ens_i[j], B_i * B)
+            run_eki_dmc!(ens_i[j], B_i * B, B_i * ys[:, j], B_i * C_ϵ * B_i')
                 
-            C_post = compute_C_uu(ens_i)
-            μ_post = compute_μ_u(ens_i)
-            push!(traces, tr(C_post))
-            push!(μs_post, μ_post)
+            C_post = compute_C_uu(ens_i[j])
+            μ_post = compute_μ_u(ens_i[j])
 
-            # println(tr(C_post))
+            traces[i, j] = tr(C_post)
+            norms[i, j] = norm(μ_post .- us[:, j]) / norm(us[:, j])
         
         end
 
-        println(mean(traces[end-19:end]))
+        println("Design $i:\n" * 
+                " - Mean trace: $(mean(traces[i, :])) \n" *
+                " - Mean norm: $(mean(norms[i, :]))")
 
     end
 
-    traces = reshape(traces, :, n_designs)
-    return traces, μs_post
+    return traces, norms
 
 end
