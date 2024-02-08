@@ -3,4 +3,5 @@
 Manifest.toml
 
 data
-plots
+plot*
+test*
