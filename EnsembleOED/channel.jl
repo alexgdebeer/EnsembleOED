@@ -1,16 +1,8 @@
 UNIT_NORM = Normal()
 
-function gauss_to_unif(
-    x::Real, 
-    lb::Real, 
-    ub::Real
-)
+abstract type AbstractChannel end
 
-    return lb + (ub - lb) * cdf(UNIT_NORM, x)
-
-end
-
-struct Channel
+struct Channel <: AbstractChannel
 
     μ_int::Real 
     μ_ext::Real 
@@ -51,6 +43,42 @@ struct Channel
 
 end
 
+struct ChannelGeom <: AbstractChannel
+
+    lnk_int::Real 
+    lnk_ext::Real 
+
+    bnds_geom::AbstractVector 
+
+    cs::AbstractVector 
+    
+    nx::Int 
+    nθ::Int
+
+    function ChannelGeom(
+        g::Grid,
+        lnk_int::Real,
+        lnk_ext::Real,
+        bnds_geom::AbstractVector
+    )
+
+        nθ = length(bnds_geom)
+        return new(lnk_int, lnk_ext, bnds_geom, g.cs, g.nx, nθ)
+
+    end
+
+end
+
+function gauss_to_unif(
+    x::Real, 
+    lb::Real, 
+    ub::Real
+)
+
+    return lb + (ub - lb) * cdf(UNIT_NORM, x)
+
+end
+
 function Base.rand(c::Channel, n::Int=1)
 
     ωs = rand(UNIT_NORM, c.nθ, n)
@@ -60,15 +88,27 @@ function Base.rand(c::Channel, n::Int=1)
     return ωs
 end
 
+function Base.rand(c::ChannelGeom, n::Int=1)
+
+    ωs = rand(UNIT_NORM, c.nθ, n)
+    return ωs
+
+end
+
+function in_channel(::ChannelGeom, x, m, p)
+    centre = 800 * sin(2π*x[1] / p) + m * x[1] + 2500
+    return centre - 800 ≤ x[2] ≤ centre + 800
+end
+
+function in_channel(::Channel, x, m, c, a, p, w)
+    centre = a * sin(2π*x[1] / p) + m * x[1] + c 
+    return centre - w ≤ x[2] ≤ centre + w
+end
+
 function inds_in_channel(
-    c::Channel,
+    c::AbstractChannel,
     ωs::AbstractVector
 )
-
-    function in_channel(x, m, c, a, p, w)
-        centre = a * sin(2π*x[1] / p) + m * x[1] + c 
-        centre - w ≤ x[2] ≤ centre + w
-    end
 
     us = [
         gauss_to_unif(ω, bnds...) 
@@ -77,7 +117,7 @@ function inds_in_channel(
 
     is_int = [
         i for (i, coord) ∈ enumerate(c.cs) 
-        if in_channel(coord, us...)
+        if in_channel(c, coord, us...)
     ]
 
     return is_int
@@ -96,5 +136,15 @@ function transform(c::Channel, ωs::AbstractVecOrMat)
     lnks[is_int] = lnks_int[is_int]
 
     return lnks
+
+end
+
+function transform(c::ChannelGeom, ωs::AbstractVecOrMat)
+
+    is_int = inds_in_channel(c, vec(ωs))
+
+    lnks = fill(c.lnk_ext, c.nx^2)
+    lnks[is_int] .= c.lnk_int
+    return lnks 
 
 end

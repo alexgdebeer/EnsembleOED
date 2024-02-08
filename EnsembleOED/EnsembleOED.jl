@@ -1,7 +1,9 @@
+using Distances
 using Distributions
 using HDF5
 using LinearAlgebra
 using LinearSolve
+using Printf
 using Random
 using SparseArrays
 using SpecialFunctions
