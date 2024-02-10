@@ -4,4 +4,5 @@ This repository contains code to demonstrate the use of ensemble Kalman inversio
 
 ## TODO:
 ### OED
- - Try some measures of non-Gaussianity.
+ - Try some measures of non-Gaussianity, including KL-divergence based on density of maximum likelihood Gaussian.
+ - Consider thinking about methods to remove the particles that get "disconnected" from the rest of the ensemble?
