@@ -48,7 +48,8 @@ struct ChannelGeom <: AbstractChannel
     lnk_int::Real 
     lnk_ext::Real 
 
-    bnds_geom::AbstractVector 
+    μs_geom::AbstractVector
+    σs_geom::AbstractVector
 
     cs::AbstractVector 
     
@@ -59,11 +60,12 @@ struct ChannelGeom <: AbstractChannel
         g::Grid,
         lnk_int::Real,
         lnk_ext::Real,
-        bnds_geom::AbstractVector
+        μs_geom::AbstractVector,
+        σs_geom::AbstractVector
     )
 
-        nθ = length(bnds_geom)
-        return new(lnk_int, lnk_ext, bnds_geom, g.cs, g.nx, nθ)
+        nθ = length(μs_geom)
+        return new(lnk_int, lnk_ext, μs_geom, σs_geom, g.cs, g.nx, nθ)
 
     end
 
@@ -110,10 +112,7 @@ function inds_in_channel(
     ωs::AbstractVector
 )
 
-    us = [
-        gauss_to_unif(ω, bnds...) 
-        for (ω, bnds) ∈ zip(ωs, c.bnds_geom)
-    ]
+    us = (ωs .* c.σs_geom) .+ c.μs_geom
 
     is_int = [
         i for (i, coord) ∈ enumerate(c.cs) 

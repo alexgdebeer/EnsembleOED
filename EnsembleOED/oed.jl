@@ -130,8 +130,8 @@ function select_sensor(
                 save_steps
             )
 
-            C_post = compute_C_uu(ens_ij)
-            a_opt_objs[i, j] = tr(C_post)
+            C_θθ = compute_C_θθ(ens_ij)
+            a_opt_objs[i, j] = tr(C_θθ)
             n_opt_objs[i, j] = measure_gaussianity(θs, means, covs)
 
         end
