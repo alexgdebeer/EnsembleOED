@@ -57,8 +57,8 @@ channel = ChannelGeom(grid, lnperm_int, lnperm_ext, bnds_geom)
 n_data = 5
 
 # Candidate locations
-xs_cand = [3000] # LinRange(500, 5_500, 8)
-ys_cand = [3000] # LinRange(500, 5_500, 8)
+xs_cand = LinRange(500, 5_500, 8)
+ys_cand = LinRange(500, 5_500, 8)
 cs_cand = [(x, y) for y ∈ ys_cand for x ∈ xs_cand]
 
 M = length(cs_cand)
@@ -71,36 +71,50 @@ F(u) = solve(grid, u, bcs, f)
 C_ϵ = σ_ϵ^2 * Matrix(1.0I, M, M)
 
 # ----------------
-# Testing
+# OED
 # ----------------
 
-θ_t = rand(channel, 1)
-u_t = transform(channel, θ_t)
-F_t = F(u_t)
-G_t = B * F_t
-y = G_t + rand(MvNormal(C_ϵ))
+θs, us, hs, ys = generate_data(F, channel, B, C_ϵ, n_data)
 
 J = 100
+ensembles = [Ensemble(channel, F, J) for _ ∈ 1:n_data]
+
 save_steps = 81:100
+max_sensors = 1
 
-ens = Ensemble(channel, F, J)
-compute_Gs!(ens, B)
+a_opt_list, n_opt_list, design = run_oed(ensembles, B, ys, C_ϵ, save_steps, max_sensors)
 
-θs, means, covs = run_eks!(ens, B, y, C_ϵ, save_steps; γ=0.5)
+# ----------------
+# Testing 
+# ----------------
 
-n_grid = 50
-xis_grid = LinRange(-4, 4, n_grid)
-xjs_grid = LinRange(-4, 4, n_grid)
-zs_grid = zeros(n_grid, n_grid)
+# θ_t = rand(channel, 1)
+# u_t = transform(channel, θ_t)
+# F_t = F(u_t)
+# G_t = B * F_t
+# y = G_t + rand(MvNormal(C_ϵ))
 
-for (i, xi) ∈ enumerate(xis_grid), (j, xj) ∈ enumerate(xjs_grid)
+# J = 100
+# save_steps = 81:100
 
-    G_ij = B * F(transform(channel, [xi, xj]))
-    zs_grid[i, j] = 0.5norm([xi, xj])^2 + 0.5((G_ij - y)' * (C_ϵ \ (G_ij - y)))
+# ens = Ensemble(channel, F, J)
 
-end
+# compute_Gs!(ens, B)
+# θs, means, covs = run_eks!(ens, B, y, C_ϵ, save_steps)
 
-compute_C_θθ(ens)
+# n_grid = 50
+# xis_grid = LinRange(-4, 4, n_grid)
+# xjs_grid = LinRange(-4, 4, n_grid)
+# zs_grid = zeros(n_grid, n_grid)
+
+# for (i, xi) ∈ enumerate(xis_grid), (j, xj) ∈ enumerate(xjs_grid)
+
+#     G_ij = B * F(transform(channel, [xi, xj]))
+#     zs_grid[i, j] = 0.5norm([xi, xj])^2 + 0.5((G_ij - y)' * (C_ϵ \ (G_ij - y)))
+
+# end
+
+# compute_C_θθ(ens)
 
 # dists = [MvNormal(m[:], Hermitian(c)) for (m, c) in zip(means, covs)]
 

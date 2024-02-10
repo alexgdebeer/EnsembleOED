@@ -307,7 +307,7 @@ function run_eks!(
     save_steps::AbstractVector;
     Δt::Real=0.01,
     tmax::Real=1.0,
-    γ::Real=1.0
+    γ::Real=0.5
 )
 
     t = 0.0

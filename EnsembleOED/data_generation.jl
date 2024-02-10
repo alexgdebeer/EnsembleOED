@@ -38,7 +38,7 @@ end
 
 function generate_data(
     F::Function,
-    c::Channel,
+    c::AbstractChannel,
     B::AbstractMatrix,
     C_ϵ::AbstractMatrix,
     n_runs::Int

@@ -26,6 +26,45 @@ function generate_B_is(selected_sensors, candidate_sensors, n_obs)
 
 end
 
+function select_sensor(
+    B::AbstractMatrix,
+    B_is::Vector,
+    ensembles::Vector{Ensemble},
+    ys::AbstractMatrix,
+    C_ϵ::AbstractMatrix
+)
+
+    n_runs = size(ys, 2)
+    n_sensors = length(B_is)
+
+    traces = zeros(n_sensors, n_runs)
+
+    ens = [deepcopy(ensembles) for _ ∈ 1:n_sensors]
+    ys = [copy(ys) for _ ∈ 1:n_sensors]
+
+    Threads.@threads for i ∈ 1:n_sensors
+
+        for (j, (y_ij, ens_ij)) ∈ enumerate(zip(eachcol(ys[i]), ens[i]))
+
+            compute_Gs!(ens_ij, B_is[i] * B)
+            run_eki_dmc!(ens_ij, B_is[i] * B, B_is[i] * y_ij, B_is[i] * C_ϵ * B_is[i]')
+            
+            C_post = compute_C_uu(ens_ij)
+            traces[i, j] = tr(C_post)
+
+        end
+
+        println("Candidate sensor $i: $(mean(traces[i, :])).")
+
+    end
+
+    mean_traces = vec(mean(traces, dims=2))
+    display(mean_traces)
+    min_ind = argmin(mean_traces)
+    return traces, min_ind
+
+end
+
 function run_oed(
     ensembles::Vector{Ensemble},
     B::AbstractMatrix,
@@ -68,12 +107,14 @@ function select_sensor(
     ensembles::Vector{Ensemble},
     ys::AbstractMatrix,
     C_ϵ::AbstractMatrix,
+    save_steps::AbstractVector
 )
 
     n_runs = size(ys, 2)
     n_sensors = length(B_is)
 
-    traces = zeros(n_sensors, n_runs)
+    a_opt_objs = zeros(n_sensors, n_runs)
+    n_opt_objs = zeros(n_sensors, n_runs)
 
     ens = [deepcopy(ensembles) for _ ∈ 1:n_sensors]
     ys = [copy(ys) for _ ∈ 1:n_sensors]
@@ -83,21 +124,66 @@ function select_sensor(
         for (j, (y_ij, ens_ij)) ∈ enumerate(zip(eachcol(ys[i]), ens[i]))
 
             compute_Gs!(ens_ij, B_is[i] * B)
-            run_eki_dmc!(ens_ij, B_is[i] * B, B_is[i] * y_ij, B_is[i] * C_ϵ * B_is[i]')
-            
+            θs, means, covs = run_eks!(
+                ens_ij, B_is[i] * B, B_is[i] * y_ij, 
+                B_is[i] * C_ϵ * B_is[i]', 
+                save_steps
+            )
+
             C_post = compute_C_uu(ens_ij)
-            traces[i, j] = tr(C_post)
+            a_opt_objs[i, j] = tr(C_post)
+            n_opt_objs[i, j] = measure_gaussianity(θs, means, covs)
 
         end
 
-        println("Candidate sensor $i: $(mean(traces[i, :])).")
+        println("Candidate sensor $i: $(mean(a_opt_objs[i, :])).")
+        println("Candidate sensor $i: $(mean(n_opt_objs[i, :])).")
 
     end
 
-    mean_traces = vec(mean(traces, dims=2))
-    display(mean_traces)
-    min_ind = argmin(mean_traces)
-    return traces, min_ind
+    mean_a_opt_objs = vec(mean(a_opt_objs, dims=2))
+    mean_n_opt_objs = vec(mean(n_opt_objs, dims=2))
+    min_ind = argmin(mean_a_opt_objs + mean_n_opt_objs)
+    return a_opt_objs, n_opt_objs, min_ind
+
+end
+
+function run_oed(
+    ensembles::Vector{Ensemble},
+    B::AbstractMatrix,
+    ys::AbstractMatrix, 
+    C_ϵ::AbstractMatrix, 
+    save_steps::AbstractVector,
+    max_sensors::Int
+)
+
+    n_obs = size(ys, 1)
+    n_sensors = size(ys, 1)
+
+    selected_sensors = Int[]
+    a_opt_list = []
+    n_opt_list = []
+
+    for i ∈ 1:max_sensors 
+
+        candidate_sensors = [
+            i for i ∈ 1:n_sensors 
+            if i ∉ selected_sensors
+        ]
+
+        B_is = generate_B_is(selected_sensors, candidate_sensors, n_obs)
+
+        a_opt_objs, n_opt_objs, opt_ind = select_sensor(B, B_is, ensembles, ys, C_ϵ, save_steps)
+        
+        push!(a_opt_list, a_opt_objs)
+        push!(n_opt_list, n_opt_objs)
+        push!(selected_sensors, candidate_sensors[opt_ind])
+
+        @info "Selected sensor: $(candidate_sensors[opt_ind])."
+
+    end
+
+    return a_opt_list, n_opt_list, selected_sensors
 
 end
 
