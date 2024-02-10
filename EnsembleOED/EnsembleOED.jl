@@ -13,5 +13,5 @@ include("matern.jl")
 include("channel.jl")
 
 include("data_generation.jl")
-include("eki.jl")
+include("ensemble_methods.jl")
 include("oed.jl")
