@@ -37,6 +37,26 @@ mutable struct Ensemble
 
 end
 
+function resample_particles!(
+    ens::Ensemble, 
+    inds_det::AbstractVector
+)
+
+    n_det = length(inds_det)
+    @info "Resampling $(n_det) detatched particles."
+
+    inds = (1:ens.J)[1:ens.J .∉ inds_det]
+    inds_res = rand(inds, n_det)
+    
+    ens.θs[:, inds_det] = ens.θs[:, inds_res]
+    ens.us[:, inds_det] = ens.us[:, inds_res]
+    ens.Fs[:, inds_det] = ens.Fs[:, inds_res]
+    ens.Gs[:, inds_det] = ens.Gs[:, inds_res]
+
+    return
+
+end
+
 function compute_covs(
     ens::Ensemble
 )
@@ -110,6 +130,14 @@ function compute_particle_weights(ens, γ)
     for c ∈ eachcol(ws)
         c ./= sum(c)
     end
+
+    inds_det = findall(>(0.98), diag(ws))
+    
+    if !isempty(inds_det)
+        resample_particles!(ens, inds_det)
+    end
+
+    println(maximum(ws))
 
     return ws
 
