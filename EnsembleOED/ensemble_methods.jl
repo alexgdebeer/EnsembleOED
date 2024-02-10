@@ -157,7 +157,9 @@ function update_ensemble_eks_loc!(
     Δt = 0.01
 
     ws = compute_particle_weights(ens, γ)
-    # display(ws[1:10, 1:10])
+
+    means = []
+    covs = []
 
     for j ∈ 1:ens.J 
 
@@ -189,22 +191,27 @@ function update_ensemble_eks_loc!(
 
         end
 
-        # Sample noise to add to the particle
-        ζ_dist = MvNormal(Hermitian(C_θθ_j + 1e-3 * Diagonal(diag(C_θθ_j))))
-        ζ_j = rand(ζ_dist)
-
-        # Update particle j 
-        ens.θs[:, j] = θ_j + Δt * (
+        # Mean and covariance of distribution particle j is sampled from
+        mean = θ_j + Δt * (
             - C_θG_j * (C_ϵ \ (G_j - y))
             - C_θθ_j * θ_j
             + cor
-        ) + √(2Δt) * ζ_j
+        )
+
+        cov = 2Δt * C_θθ_j
+
+        # Sample noise to add to the particle
+        ζ_dist = MvNormal(Hermitian(cov))
+        ζ_j = rand(ζ_dist)
+
+        ens.θs[:, j] = mean + ζ_j
+
+        push!(means, mean)
+        push!(covs, cov)
 
     end
 
-    # error("Stop here...")
-
-    return Δt
+    return means, covs, Δt
 
 end
 
@@ -335,16 +342,15 @@ function run_eks!(
     Δt = 0.0
     i = 0
 
+    means = nothing
+    covs = nothing
+
     while true 
 
         i += 1
 
-        # if i == 50 
-        #     γ /= 10
-        # end
-
         if localised
-            Δt = update_ensemble_eks_loc!(ens, y, C_ϵ, Δt₀, γ)
+            means, covs, Δt = update_ensemble_eks_loc!(ens, y, C_ϵ, Δt₀, γ)
         else 
             Δt = update_ensemble_eks!(ens, y, C_ϵ, Δt₀)
         end
@@ -354,7 +360,7 @@ function run_eks!(
         t += Δt
         if t ≥ tmax || i ≥ 200
             @info "Converged in $(i) iterations."
-            return
+            return means, covs
         end
 
         run_ensemble!(ens)

@@ -57,8 +57,8 @@ channel = ChannelGeom(grid, lnperm_int, lnperm_ext, bnds_geom)
 n_data = 5
 
 # Candidate locations
-xs_cand = [1000] # LinRange(500, 5_500, 8)
-ys_cand = [5000] # LinRange(500, 5_500, 8)
+xs_cand = [3000] # LinRange(500, 5_500, 8)
+ys_cand = [3000] # LinRange(500, 5_500, 8)
 cs_cand = [(x, y) for y ∈ ys_cand for x ∈ xs_cand]
 
 M = length(cs_cand)
@@ -85,9 +85,9 @@ J = 100
 ens = Ensemble(channel, F, J)
 compute_Gs!(ens, B)
 
-run_eks!(ens, B, y, C_ϵ; Δt₀=0.5, γ=0.5, tmax=1.0)#; localised=false)
+means, covs = run_eks!(ens, B, y, C_ϵ; Δt₀=0.5, γ=0.5, tmax=1.0)
 
-n_grid = 100
+n_grid = 50
 xis_grid = LinRange(-4, 4, n_grid)
 xjs_grid = LinRange(-4, 4, n_grid)
 zs_grid = zeros(n_grid, n_grid)
@@ -100,3 +100,13 @@ for (i, xi) ∈ enumerate(xis_grid), (j, xj) ∈ enumerate(xjs_grid)
 end
 
 compute_C_θθ(ens)
+
+dists = [MvNormal(mean[:], Hermitian(cov)) for (mean, cov) in zip(means, covs)]
+
+zs_ens = zeros(n_grid, n_grid)
+
+for (i, xi) ∈ enumerate(xis_grid), (j, xj) ∈ enumerate(xjs_grid)
+
+    zs_ens[i, j] = (1 / ens.J) * sum([pdf(d, [xi, xj]) for d ∈ dists])
+
+end
