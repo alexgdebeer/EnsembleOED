@@ -57,8 +57,8 @@ channel = ChannelGeom(grid, lnperm_int, lnperm_ext, bnds_geom)
 n_data = 5
 
 # Candidate locations
-xs_cand = [3000] # LinRange(500, 5_500, 8)
-ys_cand = [3000] # LinRange(500, 5_500, 8)
+xs_cand = [5000] # LinRange(500, 5_500, 8)
+ys_cand = [2000] # LinRange(500, 5_500, 8)
 cs_cand = [(x, y) for y ∈ ys_cand for x ∈ xs_cand]
 
 M = length(cs_cand)
@@ -81,11 +81,12 @@ G_t = B * F_t
 y = G_t + rand(MvNormal(C_ϵ))
 
 J = 100
+save_steps = [90, 100]
 
 ens = Ensemble(channel, F, J)
 compute_Gs!(ens, B)
 
-means, covs = run_eks!(ens, B, y, C_ϵ; Δt₀=0.5, γ=0.5, tmax=1.0)
+particles, means, covs = run_eks!(ens, B, y, C_ϵ, save_steps; γ=0.5)
 
 n_grid = 50
 xis_grid = LinRange(-4, 4, n_grid)

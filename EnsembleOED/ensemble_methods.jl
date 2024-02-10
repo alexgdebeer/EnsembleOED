@@ -119,128 +119,6 @@ function compute_Δt_eks(
 
 end
 
-function compute_particle_weights(ens, γ)
-
-    # Compute the squared distances between particles (weighted w.r.t. Euclidean norm)
-    ds = pairwise(Euclidean(), ens.θs).^2
-
-    # Compute the normalised weights associated with each particle
-    ws = exp.(-(1/2γ) * ds)
-    
-    for c ∈ eachcol(ws)
-        c ./= sum(c)
-    end
-
-    inds_det = findall(>(0.98), diag(ws))
-    
-    if !isempty(inds_det)
-        resample_particles!(ens, inds_det)
-    end
-
-    println(maximum(ws))
-
-    return ws
-
-end
-
-function update_ensemble_eks_loc!(
-    ens::Ensemble,
-    y::AbstractVector,
-    C_ϵ::AbstractMatrix,
-    Δt₀::Real,
-    γ::Real
-)
-
-    μ_G = mean(ens.Gs, dims=2)
-    D = (1.0 / ens.J) * (ens.Gs .- μ_G)' * (C_ϵ \ (ens.Gs .- y))
-    Δt = compute_Δt_eks(D, Δt₀)
-    Δt = 0.01
-
-    ws = compute_particle_weights(ens, γ)
-
-    means = []
-    covs = []
-
-    for j ∈ 1:ens.J 
-
-        ws_j = ws[:, j]
-        θ_j = ens.θs[:, j]
-        G_j = ens.Gs[:, j]
-
-        μθ_j = sum(ws_j' .* ens.θs, dims=2)
-        μG_j = sum(ws_j' .* ens.Gs, dims=2)
-
-        Δθ_j = ens.θs .- μθ_j 
-        ΔG_j = ens.Gs .- μG_j
-
-        # Compute weighted covariance matrices
-        C_θθ_j = (ws_j' .* Δθ_j) * Δθ_j'
-        C_θG_j = (ws_j' .* Δθ_j) * ΔG_j'
-
-        # Compute correction term
-        cor = ws_j[j] * (ens.nθ + 1) * (θ_j - μθ_j)
-
-        for k ∈ 1:ens.J 
-
-            θ_k = ens.θs[:, k]
-            ∇w_jk = (ws_j[k] / γ) * (θ_k - μθ_j)
-
-            cor += (θ_k * θ_k' * ∇w_jk)
-            cor -= (μθ_j * θ_k' * ∇w_jk)
-            cor -= (θ_k * μθ_j' * ∇w_jk)
-
-        end
-
-        # Mean and covariance of distribution particle j is sampled from
-        mean = θ_j + Δt * (
-            - C_θG_j * (C_ϵ \ (G_j - y))
-            - C_θθ_j * θ_j
-            + cor
-        )
-
-        cov = 2Δt * C_θθ_j
-
-        # Sample noise to add to the particle
-        ζ_dist = MvNormal(Hermitian(cov))
-        ζ_j = rand(ζ_dist)
-
-        ens.θs[:, j] = mean + ζ_j
-
-        push!(means, mean)
-        push!(covs, cov)
-
-    end
-
-    return means, covs, Δt
-
-end
-
-function update_ensemble_eks!(
-    ens::Ensemble,
-    y::AbstractVector,
-    C_ϵ::AbstractMatrix,
-    Δt₀::Real
-)
-
-    μ_G = mean(ens.Gs, dims=2)
-    μ_θ = mean(ens.θs, dims=2)
-       
-    C_θθ = cov(ens.θs, dims=2, corrected=false)
-    D = (1.0 / ens.J) * (ens.Gs .- μ_G)' * (C_ϵ \ (ens.Gs .- y))
-    ζ = rand(MvNormal(C_θθ + 1e-3 * Diagonal(diag(C_θθ))), ens.J)
-    
-    Δt = compute_Δt_eks(D, Δt₀)
-    
-    ens.θs = ens.θs + Δt * (
-        - (ens.θs .- μ_θ) * D
-        - (C_θθ * ens.θs)
-        + ((ens.nθ + 1) / ens.J) * (ens.θs .- μ_θ)
-    ) + √(2Δt) * ζ
-
-    return Δt
-
-end
-
 function transform_ensemble!(
     ens::Ensemble
 )
@@ -327,40 +205,136 @@ function run_eki_dmc!(
 
 end
 
+function compute_particle_weights(
+    ens::Ensemble, 
+    γ::Real
+)
+
+    # Compute the squared distances between particles (weighted w.r.t. Euclidean norm)
+    ds = pairwise(Euclidean(), ens.θs).^2
+
+    # Compute the normalised weights associated with each particle
+    ws = exp.(-(1/2γ) * ds)
+    
+    for c ∈ eachcol(ws)
+        c ./= sum(c)
+    end
+
+    inds_det = findall(>(0.98), diag(ws))
+    
+    if !isempty(inds_det)
+        resample_particles!(ens, inds_det)
+    end
+
+    println(maximum(ws))
+
+    return ws
+
+end
+
+function update_ensemble_eks_loc!(
+    ens::Ensemble,
+    y::AbstractVector,
+    C_ϵ::AbstractMatrix,
+    Δt::Real,
+    γ::Real
+)
+
+    ws = compute_particle_weights(ens, γ)
+
+    means = []
+    covs = []
+
+    for j ∈ 1:ens.J 
+
+        ws_j = ws[:, j]
+        θ_j = ens.θs[:, j]
+        G_j = ens.Gs[:, j]
+
+        μθ_j = sum(ws_j' .* ens.θs, dims=2)
+        μG_j = sum(ws_j' .* ens.Gs, dims=2)
+
+        Δθ_j = ens.θs .- μθ_j 
+        ΔG_j = ens.Gs .- μG_j
+
+        # Compute weighted covariance matrices
+        C_θθ_j = (ws_j' .* Δθ_j) * Δθ_j'
+        C_θG_j = (ws_j' .* Δθ_j) * ΔG_j'
+
+        # Compute correction term
+        cor = ws_j[j] * (ens.nθ + 1) * (θ_j - μθ_j)
+
+        for k ∈ 1:ens.J 
+
+            θ_k = ens.θs[:, k]
+            ∇w_jk = (ws_j[k] / γ) * (θ_k - μθ_j)
+
+            cor += (θ_k * θ_k' * ∇w_jk)
+            cor -= (μθ_j * θ_k' * ∇w_jk)
+            cor -= (θ_k * μθ_j' * ∇w_jk)
+
+        end
+
+        # Mean and covariance of distribution particle j is sampled from
+        mean = θ_j + Δt * (
+            - C_θG_j * (C_ϵ \ (G_j - y))
+            - C_θθ_j * θ_j
+            + cor
+        )
+
+        cov = 2Δt * C_θθ_j
+
+        # Sample noise to add to the particle
+        ζ_dist = MvNormal(Hermitian(cov))
+        ζ_j = rand(ζ_dist)
+
+        ens.θs[:, j] = mean + ζ_j
+
+        push!(means, mean[:])
+        push!(covs, cov)
+
+    end
+
+    return means, covs
+
+end
+
 function run_eks!(
     ens::Ensemble,
     B::AbstractMatrix,
     y::AbstractVector,
-    C_ϵ::AbstractMatrix;
-    Δt₀::Real=2.0,
-    tmax::Real=2.0,
-    localised::Bool=true,
+    C_ϵ::AbstractMatrix,
+    save_steps::AbstractVector;
+    Δt::Real=0.01,
+    tmax::Real=1.0,
     γ::Real=1.0
 )
 
     t = 0.0
-    Δt = 0.0
     i = 0
 
-    means = nothing
-    covs = nothing
+    means = []
+    covs = []
+    particles = []
 
     while true 
 
         i += 1
 
-        if localised
-            means, covs, Δt = update_ensemble_eks_loc!(ens, y, C_ϵ, Δt₀, γ)
-        else 
-            Δt = update_ensemble_eks!(ens, y, C_ϵ, Δt₀)
-        end
-
+        means_i, covs_i = update_ensemble_eks_loc!(ens, y, C_ϵ, Δt, γ)
         transform_ensemble!(ens)
 
+        if i ∈ save_steps
+            push!(particles, copy(ens.θs))
+            push!(means, means_i...)
+            push!(covs, covs_i...)
+        end
+
         t += Δt
-        if t ≥ tmax || i ≥ 200
-            @info "Converged in $(i) iterations."
-            return means, covs
+
+        if t ≥ tmax
+            # @info "Converged."
+            return hcat(particles...), means, covs
         end
 
         run_ensemble!(ens)
