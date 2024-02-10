@@ -165,3 +165,29 @@ function validate_designs(
     return traces, norms
 
 end
+
+function measure_gaussianity(
+    θs::AbstractMatrix,
+    means::AbstractVector,
+    covs::AbstractVector
+)
+
+    nθ = size(θs, 2)
+
+    # Form Gaussian mixture
+    dists = [MvNormal(m, Hermitian(c)) for (m, c) ∈ zip(means, covs)]
+
+    # Compute the maximum likelihood Gaussian based on samples
+    ml_gaussian = MvNormal(vec(mean(θs, dims=2)), Hermitian(cov(θs, dims=2)))
+
+    kl_div = 0.0
+
+    for θ_i ∈ eachcol(θs)
+        kl_div += log((1 / nθ) * sum([pdf(d, θ_i) for d ∈ dists]))
+        kl_div -= logpdf(ml_gaussian, θ_i)
+    end
+
+    kl_div /= nθ
+    return kl_div
+
+end

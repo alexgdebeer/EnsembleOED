@@ -226,7 +226,7 @@ function compute_particle_weights(
         resample_particles!(ens, inds_det)
     end
 
-    println(maximum(ws))
+    # println(maximum(ws)
 
     return ws
 
