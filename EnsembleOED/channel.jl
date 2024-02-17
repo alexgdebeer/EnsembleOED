@@ -97,18 +97,34 @@ function Base.rand(c::ChannelGeom, n::Int=1)
 
 end
 
-function in_channel(::ChannelGeom, x, m, p)
-    centre = 800 * sin(2π*x[1] / p) + m * x[1] + 2500
-    return centre - 800 ≤ x[2] ≤ centre + 800
-end
-
 function in_channel(::Channel, x, m, c, a, p, w)
     centre = a * sin(2π*x[1] / p) + m * x[1] + c 
     return centre - w ≤ x[2] ≤ centre + w
 end
 
+function in_channel(::ChannelGeom, x, m, p)
+    centre = 800 * sin(2π*x[1] / p) + m * x[1] + 2500
+    return centre - 800 ≤ x[2] ≤ centre + 800
+end
+
 function inds_in_channel(
-    c::AbstractChannel,
+    c::Channel,
+    ωs::AbstractVector
+)
+
+    us = [gauss_to_unif(ω_i, bnds...) for (ω_i, bnds) ∈ zip(ωs, c.bnds_geom)]
+
+    is_int = [
+        i for (i, coord) ∈ enumerate(c.cs) 
+        if in_channel(c, coord, us...)
+    ]
+
+    return is_int
+    
+end
+
+function inds_in_channel(
+    c::ChannelGeom,
     ωs::AbstractVector
 )
 
