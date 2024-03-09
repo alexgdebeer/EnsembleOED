@@ -45,11 +45,12 @@ f = build_f(grid)
 lnperm_int = 2.0
 lnperm_ext = 4.0
 
-# Means and standard deviations of slope and intercept of channel
+# Means and standard deviations of slope and period of channel
 μs_geom = [0, 5000]
 σs_geom = [0.15, 1500]
 
 channel = ChannelGeom(grid, lnperm_int, lnperm_ext, μs_geom, σs_geom)
+pri = MvNormal(Matrix(I, channel.nθ, channel.nθ))
 
 # ----------------
 # Measurement generation
@@ -58,8 +59,8 @@ channel = ChannelGeom(grid, lnperm_int, lnperm_ext, μs_geom, σs_geom)
 n_data = 5
 
 # Candidate locations
-xs_cand = [5000] # LinRange(500, 5_500, 8)
-ys_cand = [5000] # LinRange(500, 5_500, 8)
+xs_cand = LinRange(500, 5_500, 8)
+ys_cand = LinRange(500, 5_500, 8)
 cs_cand = [(x, y) for y ∈ ys_cand for x ∈ xs_cand]
 
 M = length(cs_cand)
@@ -75,56 +76,15 @@ C_ϵ = σ_ϵ^2 * Matrix(1.0I, M, M)
 # OED
 # ----------------
 
-# θs, us, hs, ys = generate_data(F, channel, B, C_ϵ, n_data)
-
-# J = 100
-# ensembles = [Ensemble(channel, F, J) for _ ∈ 1:n_data]
-
-# save_steps = 81:100
-# max_sensors = 1
-
-# a_opt_list, n_opt_list, design = run_oed(ensembles, B, ys, C_ϵ, save_steps, max_sensors)
-
-# ----------------
-# Testing 
-# ----------------
-
-θ_t = rand(channel, 1)
-u_t = transform(channel, θ_t)
-F_t = F(u_t)
-G_t = B * F_t
-y = G_t + rand(MvNormal(C_ϵ))
+θs, us, hs, ys = generate_data(F, channel, B, C_ϵ, n_data)
 
 J = 100
-save_steps = 81:100
+ensembles = [Ensemble(channel, F, J) for _ ∈ 1:n_data]
 
-ens = Ensemble(channel, F, J)
+save_steps = 75:125
+max_sensors = 1
 
-compute_Gs!(ens, B)
-θs, means, covs = run_eks!(ens, B, y, C_ϵ, save_steps)
+d_opt_list, n_opt_list, design = run_oed(ensembles, B, ys, C_ϵ, pri, save_steps, max_sensors)
 
-n_grid = 50
-xis_grid = LinRange(-4, 4, n_grid)
-xjs_grid = LinRange(-4, 4, n_grid)
-zs_grid = zeros(n_grid, n_grid)
-
-for (i, xi) ∈ enumerate(xis_grid), (j, xj) ∈ enumerate(xjs_grid)
-
-    G_ij = B * F(transform(channel, [xi, xj]))
-    zs_grid[i, j] = 0.5norm([xi, xj])^2 + 0.5((G_ij - y)' * (C_ϵ \ (G_ij - y)))
-
-end
-
-compute_C_θθ(ens)
-
-dists = [MvNormal(m[:], Hermitian(c)) for (m, c) in zip(means, covs)]
-
-zs_ens = zeros(n_grid, n_grid)
-
-for (i, xi) ∈ enumerate(xis_grid), (j, xj) ∈ enumerate(xjs_grid)
-
-    zs_ens[i, j] = (1 / ens.J) * sum([pdf(d, [xi, xj]) for d ∈ dists])
-
-end
-
-measure_gaussianity(θs, means, covs)
+h5write("data/low_dim/results.h5", "d_opt", d_opt_list[1])
+h5write("data/low_dim/results.h5", "n_opt", n_opt_list[1])

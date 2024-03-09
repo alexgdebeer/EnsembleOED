@@ -1,8 +1,18 @@
-# Ensemble Kalman Inversion for Optimal Experimental Design
+# Ensemble-Based Bayesian Optimal Experimental Design
 
-This repository contains code to demonstrate the use of ensemble Kalman inversion as part of Bayesian optimal experimental design (OED) for inverse problems arising in geophysics.
+This repository contains code to demonstrate the use of ensemble methods for Bayesian optimal experimental design (OED) problems arising in geophysics.
 
-## TODO:
-### OED
- - Try some measures of non-Gaussianity, including KL-divergence based on density of maximum likelihood Gaussian.
- - Consider thinking about methods to remove the particles that get "disconnected" from the rest of the ensemble?
+## Getting Started
+
+First, install Julia >= 1.9.0. 
+Clone the repository, then create an environment with the project dependencies by running the following in the Julia REPL:
+```
+using Pkg
+Pkg.activate(".")
+Pkg.instantiate()
+```
+The top level of the repository contains two scripts which can be run:
+ - `run_oed_high_dim.jl` runs 
+ - `run_oed_low_dim.jl` 
+
+## References

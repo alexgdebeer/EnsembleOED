@@ -84,25 +84,25 @@ C_ϵ = σ_ϵ^2 * Matrix(1.0I, M, M)
 # OED
 # ----------------
 
-# θs, us, hs, ys = generate_data(F, channel, B, C_ϵ, n_data)
+θs, us, hs, ys = generate_data(F, channel, B, C_ϵ, n_data)
 
-# J = 25
-# ensembles = [Ensemble(channel, F, J) for _ ∈ 1:n_data]
+J = 50
+ensembles = [Ensemble(channel, F, J) for _ ∈ 1:n_data]
 
-# max_sensors = 40
-# traces_list, design = run_oed(ensembles, B, ys, C_ϵ, max_sensors)
-designs = read_designs(fname_designs)
+max_sensors = 5
+traces_list, design = run_oed(ensembles, B, ys, C_ϵ, max_sensors)
+# designs = read_designs(fname_designs)
 
 # ----------------
 # Validation
 # ----------------
 
-n_data_v = 20
-J_v = 200
+# n_data_v = 20
+# J_v = 200
 
-designs = [d[1:20] for d ∈ designs]
+# designs = [d[1:20] for d ∈ designs]
 
-θs_v, us_v, hs_v, ys_v = generate_data(F, channel, B, C_ϵ, n_data_v)
-ensembles_v = [Ensemble(channel, F, J_v) for _ ∈ 1:n_data_v]
+# θs_v, us_v, hs_v, ys_v = generate_data(F, channel, B, C_ϵ, n_data_v)
+# ensembles_v = [Ensemble(channel, F, J_v) for _ ∈ 1:n_data_v]
 
-traces, norms = validate_designs(designs, ensembles_v, B, us_v, ys_v, C_ϵ)
+# traces, norms = validate_designs(designs, ensembles_v, B, us_v, ys_v, C_ϵ)

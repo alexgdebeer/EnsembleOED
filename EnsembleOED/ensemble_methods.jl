@@ -45,7 +45,7 @@ function resample_particles!(
     n_det = length(inds_det)
     @info "Resampling $(n_det) detatched particles."
 
-    inds = (1:ens.J)[1:ens.J .∉ inds_det]
+    inds = (1:ens.J)[[i for i ∈ 1:ens.J if i ∉ inds_det]]
     inds_res = rand(inds, n_det)
     
     ens.θs[:, inds_det] = ens.θs[:, inds_res]
@@ -162,6 +162,7 @@ function compute_α_dmc(
     var_φ = var(φs)
     
     α_inv = max(M / 2μ_φ, √(M / 2var_φ))
+    
     # Ensure number of iterations is no more than 30
     α_inv = max(α_inv, (α₁ * γ^N_it)^-1)
     α_inv = min(α_inv, 1-t)
@@ -188,18 +189,18 @@ function run_eki_dmc!(
         i += 1
         t += α^-1
 
-        # println(t)
-
         update_ensemble_eki!(ens, α, y, C_ϵ)
         transform_ensemble!(ens)
 
         if abs(t - 1.0) < CONV_TOL
-            # @info "Converged in $(i) iterations."
+            @info "Converged in $(i) iterations."
             return
         end
 
         run_ensemble!(ens)
         compute_Gs!(ens, B)
+
+        GC.gc(true)
 
     end
 
@@ -220,7 +221,7 @@ function compute_particle_weights(
         c ./= sum(c)
     end
 
-    inds_det = findall(>(0.98), diag(ws))
+    inds_det = findall(>(0.75), diag(ws))
     
     if !isempty(inds_det)
         resample_particles!(ens, inds_det)
@@ -285,7 +286,7 @@ function update_ensemble_eks_loc!(
         cov = 2Δt * C_θθ_j
 
         # Sample noise to add to the particle
-        ζ_dist = MvNormal(Hermitian(cov))
+        ζ_dist = MvNormal(Hermitian(cov + 1e-6I))
         ζ_j = rand(ζ_dist)
 
         ens.θs[:, j] = mean + ζ_j
@@ -305,9 +306,9 @@ function run_eks!(
     y::AbstractVector,
     C_ϵ::AbstractMatrix,
     save_steps::AbstractVector;
-    Δt::Real=0.01,
-    tmax::Real=1.0,
-    γ::Real=0.5
+    Δt::Real=0.02,
+    tmax::Real=2.5,
+    γ::Real=0.25
 )
 
     t = 0.0
@@ -342,6 +343,8 @@ function run_eks!(
 
         μ_misfit = mean(abs.(ens.Gs .- y))
         @printf "%3i | %.2e | %.2e | %.2e \n" i Δt t μ_misfit
+
+        GC.gc(true)
 
     end
 

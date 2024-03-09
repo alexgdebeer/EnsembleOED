@@ -54,12 +54,12 @@ function select_sensor(
 
         end
 
-        println("Candidate sensor $i: $(mean(traces[i, :])).")
+        # println("Candidate sensor $i: $(mean(traces[i, :])).")
 
     end
 
     mean_traces = vec(mean(traces, dims=2))
-    display(mean_traces)
+    # display(mean_traces)
     min_ind = argmin(mean_traces)
     return traces, min_ind
 
@@ -93,7 +93,7 @@ function run_oed(
         push!(traces_list, traces)
         push!(selected_sensors, candidate_sensors[opt_ind])
 
-        @info "Selected sensor: $(candidate_sensors[opt_ind])."
+        # @info "Selected sensor: $(candidate_sensors[opt_ind])."
 
     end
 
@@ -107,13 +107,14 @@ function select_sensor(
     ensembles::Vector{Ensemble},
     ys::AbstractMatrix,
     C_ϵ::AbstractMatrix,
+    pri::Distribution,
     save_steps::AbstractVector
 )
 
     n_runs = size(ys, 2)
     n_sensors = length(B_is)
 
-    a_opt_objs = zeros(n_sensors, n_runs)
+    d_opt_objs = zeros(n_sensors, n_runs)
     n_opt_objs = zeros(n_sensors, n_runs)
 
     ens = [deepcopy(ensembles) for _ ∈ 1:n_sensors]
@@ -130,21 +131,20 @@ function select_sensor(
                 save_steps
             )
 
-            C_θθ = compute_C_θθ(ens_ij)
-            a_opt_objs[i, j] = tr(C_θθ)
-            n_opt_objs[i, j] = measure_gaussianity(θs, means, covs)
+            d_opt_objs[i, j] = @time compute_eig(means, covs, pri)
+            n_opt_objs[i, j] = @time measure_gaussianity(means, covs)
 
         end
 
-        println("Candidate sensor $i: $(mean(a_opt_objs[i, :])).")
+        println("Candidate sensor $i: $(mean(d_opt_objs[i, :])).")
         println("Candidate sensor $i: $(mean(n_opt_objs[i, :])).")
 
     end
 
-    mean_a_opt_objs = vec(mean(a_opt_objs, dims=2))
+    mean_d_opt_objs = vec(mean(d_opt_objs, dims=2))
     mean_n_opt_objs = vec(mean(n_opt_objs, dims=2))
-    min_ind = argmin(mean_a_opt_objs + mean_n_opt_objs)
-    return a_opt_objs, n_opt_objs, min_ind
+    min_ind = argmin(mean_d_opt_objs + mean_n_opt_objs)
+    return d_opt_objs, n_opt_objs, min_ind
 
 end
 
@@ -152,7 +152,8 @@ function run_oed(
     ensembles::Vector{Ensemble},
     B::AbstractMatrix,
     ys::AbstractMatrix, 
-    C_ϵ::AbstractMatrix, 
+    C_ϵ::AbstractMatrix,
+    pri::Distribution, 
     save_steps::AbstractVector,
     max_sensors::Int
 )
@@ -173,7 +174,10 @@ function run_oed(
 
         B_is = generate_B_is(selected_sensors, candidate_sensors, n_obs)
 
-        a_opt_objs, n_opt_objs, opt_ind = select_sensor(B, B_is, ensembles, ys, C_ϵ, save_steps)
+        a_opt_objs, n_opt_objs, opt_ind = select_sensor(
+            B, B_is, ensembles, 
+            ys, C_ϵ, pri, save_steps
+        )
         
         push!(a_opt_list, a_opt_objs)
         push!(n_opt_list, n_opt_objs)
@@ -252,28 +256,66 @@ function validate_designs(
 
 end
 
-function measure_gaussianity(
-    θs::AbstractMatrix,
+function compute_mixture(means, covs)
+
+    components = [(m, Hermitian(c)) for (m, c) ∈ zip(means, covs)]
+    m = MixtureModel(MvNormal, components)
+    return m
+    
+end
+
+function evaluate_mixture(mixture, θ)
+    return log(1 / length(mixture) * sum([pdf(c, θ) for c ∈ mixture]))
+end
+
+function compute_eig(
     means::AbstractVector,
-    covs::AbstractVector
+    covs::AbstractVector,
+    pri::Distribution
 )
 
-    nθ = size(θs, 2)
+    nθ = 250
 
-    # Form Gaussian mixture
-    dists = [MvNormal(m, Hermitian(c)) for (m, c) ∈ zip(means, covs)]
-
-    # Compute the maximum likelihood Gaussian based on samples
-    ml_gaussian = MvNormal(vec(mean(θs, dims=2)), Hermitian(cov(θs, dims=2)))
+    mixture = compute_mixture(means, covs)
+    θs = rand(mixture, nθ)
 
     kl_div = 0.0
 
     for θ_i ∈ eachcol(θs)
-        kl_div += log((1 / nθ) * sum([pdf(d, θ_i) for d ∈ dists]))
-        kl_div -= logpdf(ml_gaussian, θ_i)
+        kl_div += logpdf(mixture, θ_i)
+        kl_div -= logpdf(pri, θ_i)
     end
 
-    kl_div /= nθ
-    return kl_div
+    return kl_div / nθ
+
+end
+
+function measure_gaussianity(
+    means::AbstractVector,
+    covs::AbstractVector
+)
+
+    nθ = 250
+
+    # Form Gaussian mixture
+    mixture = compute_mixture(means, covs)
+    θs = rand(mixture, nθ)
+
+    # Compute mean and covariance of "overall" Gaussian
+    mean_ml = vec(mean(hcat(means...), dims=2))
+    cov_ml = (1 / length(means)) * sum([c + m * m' for (m, c) in zip(means, covs)]) - mean_ml * mean_ml'
+    cov_ml = Hermitian(cov_ml)
+
+    # Compute the maximum likelihood Gaussian based on samples
+    gaussian_ml = MvNormal(mean_ml, cov_ml)
+
+    kl_div = 0.0
+
+    for θ_i ∈ eachcol(θs)
+        kl_div += logpdf(mixture, θ_i)
+        kl_div -= logpdf(gaussian_ml, θ_i)
+    end
+
+    return kl_div / nθ
 
 end
