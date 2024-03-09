@@ -6,8 +6,11 @@ This repository contains code used to demonstrate the application of ensemble me
 As a test case, we use the problem of estimating the steady-state log-transmissivity distribution of an aquifer. We are provided with 64 possible locations at which we can measure.
 
 The top level of the repository contains two scripts:
- - `run_oed_high_dim.jl` runs a high-dimensional test case (~7000 unknown parameters). Ensemble Kalman inversion [[1](#1), [2](#2)] is used, in combination with a greedy algorithm, with the aim of finding an optimal design with respect to the Bayesian A-optimality criterion.
- - `run_oed_low_dim.jl` runs a low-dimensional test case (two unknown parameters). An adaptation of the ensemble Kalman sampler [[3](#3), [4](#4)] with locally-weighted gradients developed by Reich and Weissman [[5](#5)] is used to approximate the expectation of Bayesian D-optimality criterion, and a criterion which measures the expected level of "Gaussianity" of the posterior, at each canidate measurement location. The figure at the top of this document shows some examples of candidate measurement locations, the true posterior and ensemble estimate of the posterior associated with a potential set of data, and the values of the D-optimality ($`\hat{\psi}_{\mathrm{D}}`$) and normality ($`\hat{\psi}_{\mathrm{N}}`$) criteria (in both cases, lower values are better).
+ - `run_oed_high_dim.jl` runs a high-dimensional test case (~7000 unknown parameters). 
+ Ensemble Kalman inversion [[1](#1), [2](#2)] is used, in combination with a greedy algorithm, with the aim of finding an optimal design with respect to the Bayesian A-optimality criterion.
+ - `run_oed_low_dim.jl` runs a low-dimensional test case (two unknown parameters). 
+ An adaptation of the ensemble Kalman sampler [[3](#3), [4](#4)] with locally-weighted gradients developed by Reich and Weissman [[5](#5)] is used to approximate the expectation of Bayesian D-optimality criterion, and a criterion which measures the expected level of "Gaussianity" of the posterior, at each canidate measurement location. 
+ The figure at the top of this document shows some examples of candidate measurement locations, the true posterior and ensemble estimate of the posterior associated with a potential set of data, and the values of the D-optimality ($`\hat{\psi}_{\mathrm{D}}`$) and normality ($`\hat{\psi}_{\mathrm{N}}`$) criteria (in both cases, lower values are better).
 
 ## Getting Started
 
