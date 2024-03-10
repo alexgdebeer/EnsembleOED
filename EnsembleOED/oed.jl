@@ -141,10 +141,7 @@ function select_sensor(
 
     end
 
-    mean_d_opt_objs = vec(mean(d_opt_objs, dims=2))
-    mean_n_opt_objs = vec(mean(n_opt_objs, dims=2))
-    min_ind = argmin(mean_d_opt_objs + mean_n_opt_objs)
-    return d_opt_objs, n_opt_objs, min_ind
+    return d_opt_objs, n_opt_objs
 
 end
 
@@ -164,14 +161,12 @@ function run_oed(
 
     B_is = generate_B_is([], candidate_sensors, n_obs)
 
-    d_opt_objs, n_opt_objs, opt_ind = select_sensor(
+    d_opt_objs, n_opt_objs = select_sensor(
         B, B_is, ensembles, 
         ys, C_ϵ, pri, save_steps
     )
 
-    @info "Selected sensor: $(candidate_sensors[opt_ind])."
-
-    return d_opt_objs, n_opt_objs, candidate_sensors[opt_ind]
+    return d_opt_objs, n_opt_objs
 
 end
 
