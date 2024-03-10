@@ -83,4 +83,4 @@ ensembles = [Ensemble(channel, F, J) for _ ∈ 1:n_data]
 
 save_steps = 75:125
 
-d_opt_objs, n_opt_objs, sensor = run_oed(ensembles, B, ys, C_ϵ, pri, save_steps)
+d_opt_objs, n_opt_objs = run_oed(ensembles, B, ys, C_ϵ, pri, save_steps)
