@@ -82,9 +82,5 @@ J = 100
 ensembles = [Ensemble(channel, F, J) for _ ∈ 1:n_data]
 
 save_steps = 75:125
-max_sensors = 1
 
-d_opt_list, n_opt_list, design = run_oed(ensembles, B, ys, C_ϵ, pri, save_steps, max_sensors)
-
-h5write("data/low_dim/results.h5", "d_opt", d_opt_list[1])
-h5write("data/low_dim/results.h5", "n_opt", n_opt_list[1])
+d_opt_objs, n_opt_objs, sensor = run_oed(ensembles, B, ys, C_ϵ, pri, save_steps)

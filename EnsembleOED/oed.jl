@@ -131,8 +131,8 @@ function select_sensor(
                 save_steps
             )
 
-            d_opt_objs[i, j] = @time compute_eig(means, covs, pri)
-            n_opt_objs[i, j] = @time measure_gaussianity(means, covs)
+            d_opt_objs[i, j] = compute_eig(means, covs, pri)
+            n_opt_objs[i, j] = measure_gaussianity(means, covs)
 
         end
 
@@ -154,40 +154,24 @@ function run_oed(
     ys::AbstractMatrix, 
     C_ϵ::AbstractMatrix,
     pri::Distribution, 
-    save_steps::AbstractVector,
-    max_sensors::Int
+    save_steps::AbstractVector
 )
 
     n_obs = size(ys, 1)
     n_sensors = size(ys, 1)
 
-    selected_sensors = Int[]
-    a_opt_list = []
-    n_opt_list = []
+    candidate_sensors = collect(1:n_sensors)
 
-    for i ∈ 1:max_sensors 
+    B_is = generate_B_is([], candidate_sensors, n_obs)
 
-        candidate_sensors = [
-            i for i ∈ 1:n_sensors 
-            if i ∉ selected_sensors
-        ]
+    d_opt_objs, n_opt_objs, opt_ind = select_sensor(
+        B, B_is, ensembles, 
+        ys, C_ϵ, pri, save_steps
+    )
 
-        B_is = generate_B_is(selected_sensors, candidate_sensors, n_obs)
+    @info "Selected sensor: $(candidate_sensors[opt_ind])."
 
-        a_opt_objs, n_opt_objs, opt_ind = select_sensor(
-            B, B_is, ensembles, 
-            ys, C_ϵ, pri, save_steps
-        )
-        
-        push!(a_opt_list, a_opt_objs)
-        push!(n_opt_list, n_opt_objs)
-        push!(selected_sensors, candidate_sensors[opt_ind])
-
-        @info "Selected sensor: $(candidate_sensors[opt_ind])."
-
-    end
-
-    return a_opt_list, n_opt_list, selected_sensors
+    return d_opt_objs, n_opt_objs, candidate_sensors[opt_ind]
 
 end
 
